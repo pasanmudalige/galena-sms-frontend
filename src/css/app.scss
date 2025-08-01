@@ -1,1 +1,40 @@
 // app global css in SCSS form
+// This app is now powerd by tailwind. So, use it
+@import "tailwind.css";
+
+body {
+  color: $dark;
+  font-family: "Poppins", sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.25px;
+}
+a{
+  color: $primary;
+}
+// ------------- mbi Classes ------------
+
+.mbi-btn {
+  min-width: 120px;
+  min-height: 44px;
+  border-radius: 5px;
+
+  span {
+    font-weight: 500;
+    font-size: 13px;
+    line-height: 16px;
+  }
+}
+
+.mbi-title {
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 40px;
+}
+
+.mbi-subtitle {
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+}
