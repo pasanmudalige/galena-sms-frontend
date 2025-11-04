@@ -54,6 +54,7 @@ import { showSuccessNotification, showErrorNotification } from 'src/utils/notifi
 import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth-store'
 import { rules } from 'src/utils/validation-rules'
+import { setAccessToken } from 'src/utils/cookie-storage'
 
 defineOptions({
   name: 'AuthLogin',
@@ -77,9 +78,10 @@ const onSubmit = async () => {
     console.log(response)
     if (response.status === 200) {
       if (response.data.code === 200) {
-        authStore.setAuthObject(response.data.data)
+        const token = response.data.accessToken
+        if (token) setAccessToken(token)
         showSuccessNotification('Successfully logged in')
-        router.push('/dashboard')
+        router.push('/admin/dashboard')
       } else {
         console.log('no access')
         showErrorNotification(response.data.message)
