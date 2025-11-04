@@ -28,6 +28,8 @@ const routes = [
       },
       { path: 'students', component: () => import('pages/admin/StudentsPage.vue') },
       { path: 'classes', component: () => import('pages/admin/ClassesPage.vue') },
+      { path: 'enrollments', component: () => import('pages/admin/EnrollmentsPage.vue') },
+      { path: 'attendance', component: () => import('pages/admin/AttendancePage.vue') },
       { path: 'payments', component: () => import('pages/admin/PaymentsPage.vue') },
       { path: 'bible-verse/:language', component: () => import('pages/admin/BibleVersePage.vue') },
       { path: 'news', component: () => import('pages/admin/NewsPage.vue') },

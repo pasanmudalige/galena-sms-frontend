@@ -103,6 +103,8 @@ export const useAuthStore = defineStore('auth', {
         { id: 'dashboard', title: 'Dashboard', icon: 'home', route: '/admin/dashboard' },
         { id: 'students', title: 'Manage Students', icon: 'groups', route: '/admin/students' },
         { id: 'classes', title: 'Manage Classes', icon: 'school', route: '/admin/classes' },
+        { id: 'enrollments', title: 'Student Enrollment', icon: 'person_add', route: '/admin/enrollments' },
+        { id: 'attendance', title: 'Mark Attendance', icon: 'how_to_reg', route: '/admin/attendance' },
         { id: 'payments', title: 'Payments', icon: 'payments', route: '/admin/payments' },
       ]
     },
