@@ -49,9 +49,9 @@
     >
       <q-scroll-area class="fit" :horizontal-thumb-style="{ opacity: 0 }">
         <q-list role="list">
-          <q-item class="py-6">
+          <q-item class="py-6 justify-center">
             <q-item-section class="items-center mx-2" avatar>
-              <img alt="Galena logo" src="~assets/galena.png" width="80" />
+              <img alt="Galena logo" src="~assets/galena.png" width="180" />
             </q-item-section>
           </q-item>
 
