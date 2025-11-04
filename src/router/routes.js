@@ -26,7 +26,9 @@ const routes = [
         name: 'admin-dashboard',
         component: () => import('pages/admin/IndexPage.vue'),
       },
-      { path: 'users', component: () => import('pages/admin/UsersPage.vue') },
+      { path: 'students', component: () => import('pages/admin/StudentsPage.vue') },
+      { path: 'classes', component: () => import('pages/admin/ClassesPage.vue') },
+      { path: 'payments', component: () => import('pages/admin/PaymentsPage.vue') },
       { path: 'bible-verse/:language', component: () => import('pages/admin/BibleVersePage.vue') },
       { path: 'news', component: () => import('pages/admin/NewsPage.vue') },
       { path: 'admins', component: () => import('pages/admin/AdminsPage.vue') }, // Only for Super Admins

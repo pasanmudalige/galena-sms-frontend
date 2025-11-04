@@ -34,7 +34,7 @@ export const useAuthStore = defineStore('auth', {
     },
     async getAuthUserDataUsingAccessToken() {
       try {
-        return await api.get('/api/auth/get-user-data')
+        return await api.get('/admin/auth/get-user-data')
       } catch (error) {
         if (error) throw error
       }
@@ -99,56 +99,12 @@ export const useAuthStore = defineStore('auth', {
       setAccessToken(accessToken)
     },
     async adminDashboardRouteBuild() {
-      const response = await api.get('/api/admin/privilege/get-access')
-      const routes = response.data.data
-      // const routes = [
-      //   {
-      //     id: 'dashboard',
-      //     title: 'Dashboard',
-      //     icon: 'home',
-      //     route: '/admin/dashboard'
-      //   },
-      //   {
-      //     id: 'bible-verse-english',
-      //     title: 'English Message',
-      //     icon: 'menu_book',
-      //     route: '/admin/bible-verse/english'
-      //   },
-      //   {
-      //     id: 'bible-verse-sinhala',
-      //     title: 'Sinhala Message',
-      //     icon: 'menu_book',
-      //     route: '/admin/bible-verse/sinhala'
-      //   },
-      //   {
-      //     id: 'bible-verse-tamil',
-      //     title: 'Tamil Message',
-      //     icon: 'menu_book',
-      //     route: '/admin/bible-verse/tamil'
-      //   },
-      //   {
-      //     id: 'users',
-      //     title: 'User List',
-      //     icon: 'person',
-      //     route: '/admin/users'
-      //   },
-      //   {
-      //     id: 'users',
-      //     title: 'News',
-      //     icon: 'person',
-      //     route: '/admin/news'
-      //   }
-      // ]
-      // if (this.auth.view === 'SUPER_ADMIN_VIEW') {
-      //   routes.push({
-      //     id: 'admins',
-      //     title: 'Admin List',
-      //     icon: 'admin_panel_settings',
-      //     route: '/admin/admins'
-      //   })
-      // }
-
-      return routes
+      return [
+        { id: 'dashboard', title: 'Dashboard', icon: 'home', route: '/admin/dashboard' },
+        { id: 'students', title: 'Manage Students', icon: 'groups', route: '/admin/students' },
+        { id: 'classes', title: 'Manage Classes', icon: 'school', route: '/admin/classes' },
+        { id: 'payments', title: 'Payments', icon: 'payments', route: '/admin/payments' },
+      ]
     },
   },
 })

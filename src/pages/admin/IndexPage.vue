@@ -5,22 +5,38 @@
         <q-card-section>
           <div class="text-sm text-gray-500">Students</div>
           <div class="text-3xl font-semibold">{{ students.total }}</div>
-          <div class="text-xs text-gray-500">Active: {{ students.active }} · Inactive: {{ students.inactive }}</div>
+          <div class="text-xs text-gray-500">
+            Active: {{ students.active }} · Inactive: {{ students.inactive }}
+          </div>
         </q-card-section>
       </q-card>
       <q-card>
         <q-card-section>
           <div class="text-sm text-gray-500">Classes</div>
           <div class="text-3xl font-semibold">{{ classes.total }}</div>
-          <div class="text-xs text-gray-500">Active: {{ classes.active }} · Inactive: {{ classes.inactive }}</div>
+          <div class="text-xs text-gray-500">
+            Active: {{ classes.active }} · Inactive: {{ classes.inactive }}
+          </div>
         </q-card-section>
       </q-card>
       <q-card>
         <q-card-section>
           <div class="text-sm text-gray-500">Quick Actions</div>
           <div class="flex gap-2 mt-2">
-            <q-btn no-caps color="primary" outline label="Students" @click="$router.push('/admin/users')" />
-            <q-btn no-caps color="primary" outline label="Classes" @click="$router.push('/admin/bible-verse/english')" />
+            <q-btn
+              no-caps
+              color="primary"
+              outline
+              label="Students"
+              @click="$router.push('/admin/users')"
+            />
+            <q-btn
+              no-caps
+              color="primary"
+              outline
+              label="Classes"
+              @click="$router.push('/admin/bible-verse/english')"
+            />
           </div>
         </q-card-section>
       </q-card>
@@ -65,13 +81,13 @@ const classes = ref({ total: 0, active: 0, inactive: 0, recent: [] })
 
 const loadDashboard = async () => {
   try {
-    const res = await api.get('/v1/api/admin/auth/getDashboardData')
+    const res = await api.get('/admin/auth/getDashboardData')
     if (res.status === 200 && res.data?.data) {
       students.value = res.data.data.students
       classes.value = res.data.data.classes
     }
   } catch (e) {
-   console.log(e);
+    console.log(e)
   }
 }
 
