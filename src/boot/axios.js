@@ -42,6 +42,7 @@ const responseInterceptor = (error) => {
 const createApiInstance = (contentType = 'application/json') => {
   const apiInstance = axios.create({
     baseURL: process.env.BACKEND_URL,
+    withCredentials: true,
   })
 
   apiInstance.interceptors.request.use((config) => {

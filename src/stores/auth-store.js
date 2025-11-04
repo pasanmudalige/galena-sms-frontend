@@ -27,7 +27,7 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     async loginApi(data) {
       try {
-        return await api.post('/api/login', data)
+        return await api.post('/admin/auth/login', data)
       } catch (error) {
         if (error) throw error
       }
