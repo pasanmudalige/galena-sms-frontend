@@ -42,6 +42,12 @@
                 :hint="'Leave empty to auto-generate'"
               />
               <q-input
+                v-model="form.school"
+                label="School"
+                dense
+                outlined
+              />
+              <q-input
                 v-model="form.phone"
                 label="Phone (WhatsApp)"
                 dense
@@ -84,6 +90,7 @@
                 :rules="[(v) => !!v || 'Required']"
               />
               <q-input v-model="editForm.student_id" label="Student ID" dense outlined />
+              <q-input v-model="editForm.school" label="School" dense outlined />
               <q-input
                 v-model="editForm.phone"
                 label="Phone (WhatsApp)"
@@ -152,6 +159,7 @@ const editingStudentId = ref(null)
 const form = ref({
   student_name: '',
   student_id: '',
+  school: '',
   phone: '',
   parent_phone: '',
   email: '',
@@ -160,6 +168,7 @@ const form = ref({
 const editForm = ref({
   student_name: '',
   student_id: '',
+  school: '',
   phone: '',
   parent_phone: '',
   email: '',
@@ -170,6 +179,7 @@ const statusOptions = ['active', 'inactive']
 const columns = [
   { name: 'student_id', label: 'Student Id', field: 'student_id', align: 'left', sortable: true },
   { name: 'student_name', label: 'Name', field: 'student_name', align: 'left', sortable: true },
+  { name: 'school', label: 'School', field: 'school', align: 'left', sortable: true },
   { name: 'email', label: 'Email', field: 'email', align: 'left' },
   { name: 'phone', label: 'Phone', field: 'phone', align: 'left' },
   { name: 'status', label: 'Status', field: 'status', align: 'left' },
@@ -189,6 +199,7 @@ const onEdit = (row) => {
   editForm.value = {
     student_name: row.student_name || '',
     student_id: row.student_id || '',
+    school: row.school || '',
     phone: row.phone || '',
     parent_phone: row.parent_phone || '',
     email: row.email || '',
@@ -244,6 +255,7 @@ const submitAdd = async () => {
       form.value = {
         student_name: '',
         student_id: '',
+        school: '',
         phone: '',
         parent_phone: '',
         email: '',
