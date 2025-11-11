@@ -12,6 +12,7 @@ const routes = [
       { path: 'admin', name: 'login', component: () => import('pages/auth/AuthLogin.vue') },
       { path: '', name: 'webpage', component: () => import('pages/auth/WebPage.vue') },
       { path: 'register', component: () => import('pages/auth/AuthRegister.vue') },
+      { path: 'student-register', name: 'student-register', component: () => import('pages/auth/StudentRegister.vue') },
       { path: 'forgot-password', component: () => import('pages/auth/AuthForgotPassword.vue') },
     ],
   },
