@@ -38,6 +38,23 @@ const routes = [
       // { path: 'admins', component: () => import('pages/admin/AdminsPage.vue'), meta: { middleware: 'superadmin' } } // Only for Super Admins
     ],
   },
+  {
+    path: '/student',
+    name: 'student',
+    component: () => import('layouts/StudentLayout.vue'),
+    meta: { authOnly: true, middleware: 'student' },
+    children: [
+      {
+        path: 'dashboard',
+        name: 'student-dashboard',
+        component: () => import('pages/student/StudentDashboard.vue'),
+      },
+      { path: 'classes', component: () => import('pages/student/StudentClasses.vue') },
+      { path: 'attendance', component: () => import('pages/student/StudentAttendance.vue') },
+      { path: 'payments', component: () => import('pages/student/StudentPayments.vue') },
+      { path: 'profile', component: () => import('pages/student/StudentProfile.vue') },
+    ],
+  },
 
   // Always leave this as last one,
   // but you can also remove it

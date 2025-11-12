@@ -473,20 +473,14 @@ onMounted(() => {
   loadALYears()
 })
 
-function generateStudentId() {
-  // simple placeholder: STU-YYYYMMDD-XXXX
-  const d = new Date()
-  const pad = (n) => n.toString().padStart(2, '0')
-  const ymd = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`
-  const rand = Math.random().toString(36).slice(2, 6).toUpperCase()
-  return `STU-${ymd}-${rand}`
-}
-
 const submitAdd = async () => {
   try {
     saving.value = true
     const payload = { ...form.value }
-    if (!payload.student_id) payload.student_id = generateStudentId()
+    // Remove student_id from payload if empty - backend will auto-generate
+    if (!payload.student_id || payload.student_id.trim() === '') {
+      delete payload.student_id
+    }
     // Ensure hear_about_us is sent as array
     if (!Array.isArray(payload.hear_about_us)) {
       payload.hear_about_us = payload.hear_about_us ? [payload.hear_about_us] : []

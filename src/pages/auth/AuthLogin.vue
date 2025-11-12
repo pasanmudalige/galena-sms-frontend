@@ -150,9 +150,16 @@ const onSubmit = async () => {
     if (response.status === 200) {
       if (response.data.code === 200) {
         const token = response.data.accessToken
+        const user = response.data.user
         if (token) setAccessToken(token)
         showSuccessNotification('Successfully logged in')
-        router.push('/admin/dashboard')
+        
+        // Role-based redirect
+        if (user && user.role === 'student') {
+          router.push('/student/dashboard')
+        } else {
+          router.push('/admin/dashboard')
+        }
       } else {
         console.log('no access')
         showErrorNotification(response.data.message)
