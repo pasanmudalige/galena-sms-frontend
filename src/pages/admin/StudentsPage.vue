@@ -86,7 +86,17 @@
                 :rules="[(v) => !!v || 'Required']"
               />
               <q-input v-model="form.parent_phone" label="Parent Phone" dense outlined />
-              <q-input v-model="form.email" label="Email" dense outlined type="email" />
+              <q-input
+                v-model="form.email"
+                label="Email"
+                dense
+                outlined
+                type="email"
+                :rules="[
+                  (v) => !!v || 'Required',
+                  (v) => !form.grant_access_immediately || !!v || 'Email is required to grant access',
+                ]"
+              />
 
               <q-input
                 v-model="form.address"
@@ -125,6 +135,18 @@
                       color="primary"
                     />
                   </div>
+                </div>
+              </div>
+
+              <div class="md:col-span-2">
+                <q-checkbox
+                  v-model="form.grant_access_immediately"
+                  label="Grant access immediately (generate username and password)"
+                  color="primary"
+                  dense
+                />
+                <div class="text-xs text-grey-6 mt-1">
+                  If checked, access credentials will be generated and shown after saving
                 </div>
               </div>
             </div>
@@ -340,6 +362,7 @@ const form = ref({
   address: '',
   year_of_al: '',
   hear_about_us: [],
+  grant_access_immediately: false,
 })
 const editForm = ref({
   student_name: '',
@@ -477,6 +500,9 @@ const submitAdd = async () => {
   try {
     saving.value = true
     const payload = { ...form.value }
+    const grantAccessImmediately = payload.grant_access_immediately
+    // Remove grant_access_immediately from payload - it's not a backend field
+    delete payload.grant_access_immediately
     // Remove student_id from payload if empty - backend will auto-generate
     if (!payload.student_id || payload.student_id.trim() === '') {
       delete payload.student_id
@@ -487,10 +513,33 @@ const submitAdd = async () => {
     }
     const res = await api.post('/admin/students', payload)
     if (res.status === 201) {
+      const studentId = res.data?.data?.id // Database ID for API calls
       createdStudentId.value = res.data?.data?.student_id || payload.student_id
       successMessage.value = 'Student added successfully'
       showAdd.value = false
-      showSuccess.value = true
+      
+      // If grant access immediately is checked, grant access
+      if (grantAccessImmediately && studentId && payload.email) {
+        try {
+          const accessRes = await api.post(`/admin/students/${studentId}/grant-access`)
+          if (accessRes.status === 200 && accessRes.data?.data) {
+            credentials.value = {
+              student_name: accessRes.data.data.student_name,
+              student_id: accessRes.data.data.student_id,
+              username: accessRes.data.data.username,
+              password: accessRes.data.data.password,
+            }
+            showCredentials.value = true
+          }
+        } catch (error) {
+          console.error('Grant access error:', error)
+          // Still show success message even if grant access fails
+          showSuccess.value = true
+        }
+      } else {
+        showSuccess.value = true
+      }
+      
       form.value = {
         student_name: '',
         student_id: '',
@@ -501,6 +550,7 @@ const submitAdd = async () => {
         address: '',
         year_of_al: '',
         hear_about_us: [],
+        grant_access_immediately: false,
       }
       await load()
     }
@@ -575,7 +625,8 @@ const copyToClipboard = async (text) => {
 }
 
 const copyAllCredentials = () => {
-  const text = `Student Login Credentials\n\nStudent: ${credentials.value.student_name}\nStudent ID: ${credentials.value.student_id}\nUsername: ${credentials.value.username}\nPassword: ${credentials.value.password}`
+  const loginUrl = `${window.location.origin}/admin`
+  const text = `Student Login Credentials\n\nStudent: ${credentials.value.student_name}\nStudent ID: ${credentials.value.student_id}\nUsername: ${credentials.value.username}\nPassword: ${credentials.value.password}\n\nLogin using this link:\n${loginUrl}`
   copyToClipboard(text)
 }
 </script>

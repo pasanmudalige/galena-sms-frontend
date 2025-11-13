@@ -9,7 +9,7 @@ const routes = [
     component: () => import('layouts/GuestLayout.vue'),
     meta: { authOnly: false, middleware: 'guest' },
     children: [
-      { path: 'admin', name: 'login', component: () => import('pages/auth/AuthLogin.vue') },
+      { path: 'login', name: 'login', component: () => import('pages/auth/AuthLogin.vue') },
       { path: '', name: 'webpage', component: () => import('pages/auth/WebPage.vue') },
       { path: 'register', component: () => import('pages/auth/AuthRegister.vue') },
       { path: 'student-register', name: 'student-register', component: () => import('pages/auth/StudentRegister.vue') },
@@ -32,6 +32,7 @@ const routes = [
       { path: 'enrollments', component: () => import('pages/admin/EnrollmentsPage.vue') },
       { path: 'attendance', component: () => import('pages/admin/AttendancePage.vue') },
       { path: 'payments', component: () => import('pages/admin/PaymentsPage.vue') },
+      { path: 'documents', component: () => import('pages/admin/DocumentsPage.vue') },
       { path: 'bible-verse/:language', component: () => import('pages/admin/BibleVersePage.vue') },
       { path: 'news', component: () => import('pages/admin/NewsPage.vue') },
       { path: 'admins', component: () => import('pages/admin/AdminsPage.vue') }, // Only for Super Admins
@@ -51,6 +52,7 @@ const routes = [
       },
       { path: 'classes', component: () => import('pages/student/StudentClasses.vue') },
       { path: 'attendance', component: () => import('pages/student/StudentAttendance.vue') },
+      { path: 'documents', component: () => import('pages/student/StudentDocuments.vue') },
       { path: 'payments', component: () => import('pages/student/StudentPayments.vue') },
       { path: 'profile', component: () => import('pages/student/StudentProfile.vue') },
     ],

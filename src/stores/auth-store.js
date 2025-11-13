@@ -49,7 +49,7 @@ export const useAuthStore = defineStore('auth', {
         removeAccessToken()
         localStorage.clear()
         sessionStorage.clear()
-        window.location.replace('/admin')
+        window.location.replace('/login')
       }
     },
     async sendOtpApi(data) {
@@ -105,6 +105,7 @@ export const useAuthStore = defineStore('auth', {
         { id: 'classes', title: 'Manage Classes', icon: 'school', route: '/admin/classes' },
         { id: 'enrollments', title: 'Student Enrollment', icon: 'person_add', route: '/admin/enrollments' },
         { id: 'attendance', title: 'Mark Attendance', icon: 'how_to_reg', route: '/admin/attendance' },
+        { id: 'documents', title: 'Manage Documents', icon: 'description', route: '/admin/documents' },
         { id: 'payments', title: 'Payments', icon: 'payments', route: '/admin/payments' },
       ]
     },

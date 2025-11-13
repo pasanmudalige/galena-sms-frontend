@@ -70,6 +70,7 @@ const menuItems = ref([
   { id: 'dashboard', title: 'Dashboard', icon: 'home', route: '/student/dashboard' },
   { id: 'classes', title: 'My Classes', icon: 'school', route: '/student/classes' },
   { id: 'attendance', title: 'My Attendance', icon: 'how_to_reg', route: '/student/attendance' },
+  { id: 'documents', title: 'My Documents', icon: 'description', route: '/student/documents' },
   { id: 'payments', title: 'My Payments', icon: 'payments', route: '/student/payments' },
   { id: 'profile', title: 'My Profile', icon: 'person', route: '/student/profile' },
 ])

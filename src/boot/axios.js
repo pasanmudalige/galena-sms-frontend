@@ -66,7 +66,7 @@ const logout = () => {
   removeAccessToken()
   localStorage.clear()
   sessionStorage.clear()
-  window.location.replace('/')
+  window.location.replace('/login')
 }
 
 // Create instances for JSON and Multipart/Form-Data requests
