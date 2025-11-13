@@ -145,7 +145,7 @@
 
       <!-- QR Code Dialog -->
       <q-dialog v-model="showQRDialog">
-        <q-card class="rounded-xl shadow-lg" style="min-width: 350px; max-width: 400px">
+        <q-card class="rounded-xl shadow-lg" style="min-width: 400px; max-width: 500px">
           <q-card-section class="bg-primary text-white text-center q-pa-lg">
             <div class="text-h6 text-weight-bold">Class QR Code</div>
             <div class="text-caption q-mt-xs opacity-90">Scan this code for attendance</div>
@@ -165,10 +165,37 @@
               <q-spinner color="primary" size="3em" />
               <div class="text-caption text-grey-6 q-mt-md">Loading QR Code...</div>
             </div>
+            <div v-if="qrCodeString" class="q-mt-md">
+              <div class="text-caption text-grey-7 q-mb-xs">QR Code String:</div>
+              <div class="text-body2 font-mono bg-grey-2 q-pa-sm rounded-borders">
+                {{ qrCodeString }}
+              </div>
+            </div>
+            <div v-if="enrollmentDetails" class="q-mt-md text-left">
+              <q-separator class="q-mb-md" />
+              <div class="text-subtitle2 q-mb-xs">
+                <q-icon name="school" size="16px" class="q-mr-xs" />
+                <strong>Class:</strong> {{ enrollmentDetails.class?.class_name }}
+              </div>
+              <div class="text-subtitle2">
+                <q-icon name="event" size="16px" class="q-mr-xs" />
+                <strong>Enrollment Date:</strong>
+                {{ formatDate(enrollmentDetails.enrollment_date) }}
+              </div>
+            </div>
           </q-card-section>
 
           <q-card-actions align="right" class="q-pa-md">
-            <q-btn flat label="Close" color="primary" v-close-popup />
+            <q-btn
+              color="secondary"
+              no-caps
+              label="Download QR"
+              icon="download"
+              unelevated
+              @click="downloadQR"
+              :disable="!qrCodeUrl"
+            />
+            <q-btn flat no-caps label="Close" color="grey-7" v-close-popup />
           </q-card-actions>
         </q-card>
       </q-dialog>
@@ -180,6 +207,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { api } from 'src/boot/axios'
 import { useAuthStore } from 'src/stores/auth-store'
+import { showSuccessNotification } from 'src/utils/notification'
 
 defineOptions({
   name: 'StudentClasses',
@@ -190,6 +218,8 @@ const authUser = ref(null)
 const classRows = ref([])
 const showQRDialog = ref(false)
 const qrCodeUrl = ref('')
+const qrCodeString = ref('')
+const enrollmentDetails = ref(null)
 const loading = ref(false)
 
 const activeClassesCount = computed(() => {
@@ -250,7 +280,7 @@ const loadClasses = async () => {
         const enrollmentsRes = await api.get('/admin/enrollments')
         if (enrollmentsRes.status === 200 && enrollmentsRes.data?.data) {
           const studentEnrollments = enrollmentsRes.data.data.filter(
-            (e) => e.student?.id === student.id
+            (e) => e.student?.id === student.id,
           )
 
           classRows.value = studentEnrollments.map((e) => ({
@@ -277,16 +307,45 @@ const loadClasses = async () => {
   }
 }
 
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A'
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  } catch (e) {
+    console.log(e)
+    return dateString
+  }
+}
+
 const showQRCode = async (enrollmentId) => {
   showQRDialog.value = true
   qrCodeUrl.value = ''
+  qrCodeString.value = ''
+  enrollmentDetails.value = null
   try {
     const res = await api.get(`/admin/enrollments/${enrollmentId}`)
-    if (res.status === 200 && res.data?.data?.qr_code_image) {
+    if (res.status === 200 && res.data?.data) {
       qrCodeUrl.value = res.data.data.qr_code_image
+      qrCodeString.value = res.data.data.enrollment?.enrollment_qr_code || ''
+      enrollmentDetails.value = res.data.data.enrollment
     }
   } catch (error) {
     console.error('Error loading QR code:', error)
+  }
+}
+
+const downloadQR = () => {
+  if (qrCodeUrl.value) {
+    const link = document.createElement('a')
+    link.href = qrCodeUrl.value
+    link.download = `enrollment-qr-${qrCodeString.value || 'code'}.png`
+    link.click()
+    showSuccessNotification('QR code downloaded successfully')
   }
 }
 
@@ -297,7 +356,9 @@ onMounted(() => {
 
 <style scoped>
 .stat-card {
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   border-left: 4px solid transparent;
 }
 
