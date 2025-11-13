@@ -34,6 +34,7 @@
       </template>
       <template #body-cell-actions="props">
         <q-td :props="props">
+          <q-btn dense flat round icon="visibility" color="primary" class="mr-1" @click="onView(props.row)" />
           <q-btn dense flat round icon="edit" color="primary" class="mr-1" @click="onEdit(props.row)" />
           <q-btn dense flat round icon="delete" color="negative" @click="onDelete(props.row)" />
         </q-td>
@@ -183,18 +184,75 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+
+    <!-- Document Viewer Dialog -->
+    <q-dialog v-model="showViewer" maximized @hide="closeViewer">
+      <q-card class="bg-grey-1">
+        <q-card-section class="row items-center q-pb-none bg-white">
+          <div class="text-h6">{{ currentDocument?.document_name }}</div>
+          <q-space />
+          <q-btn icon="close" flat round dense @click="closeViewer" />
+        </q-card-section>
+        <q-separator />
+        <q-card-section class="q-pa-none" style="height: calc(100vh - 60px)">
+          <div
+            v-if="viewerLoading"
+            class="flex justify-center items-center"
+            style="height: 100%"
+          >
+            <q-spinner color="primary" size="3em" />
+          </div>
+          <div
+            v-else
+            id="document-viewer"
+            class="full-width full-height"
+            style="position: relative; overflow: hidden"
+          >
+            <!-- PDF Viewer with Canvas Watermark -->
+            <div v-if="currentDocument?.file_type === 'pdf'" style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: auto">
+              <div v-if="pdfLoading" class="flex justify-center items-center" style="height: 100%">
+                <q-spinner color="primary" size="3em" />
+              </div>
+              <div v-else id="pdf-container" ref="pdfContainer" style="width: 100%; height: 100%; overflow: auto; text-align: center; padding: 20px">
+                <!-- PDF pages will be rendered here -->
+              </div>
+            </div>
+            <!-- Image Viewer with Canvas Watermark -->
+            <div v-else style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: auto">
+              <canvas
+                ref="imageCanvas"
+                style="max-width: 100%; max-height: 100%; object-fit: contain"
+              />
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { api, apiFiles } from 'src/boot/axios'
 import { showSuccessNotification, showErrorNotification } from 'src/utils/notification'
+import * as pdfjsLib from 'pdfjs-dist'
+
+// Configure PDF.js worker - use local file from public folder
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
 const rows = ref([])
 const saving = ref(false)
 const showAdd = ref(false)
 const showEdit = ref(false)
+const showViewer = ref(false)
+const viewerLoading = ref(false)
+const currentDocument = ref(null)
+const documentUrl = ref('')
+const imageCanvas = ref(null)
+const pdfLoading = ref(false)
+const pdfPages = ref([])
+const pdfCanvases = ref([])
+const pdfContainer = ref(null)
 
 const form = ref({
   document_name: '',
@@ -369,6 +427,307 @@ const onDelete = async (row) => {
       console.error(error)
     }
   }
+}
+
+// Admin view document - unlimited access
+const onView = async (doc) => {
+  currentDocument.value = doc
+  viewerLoading.value = true
+  showViewer.value = true
+  
+  await nextTick()
+  await new Promise(resolve => setTimeout(resolve, 100))
+
+  try {
+    // Check if document has file_url or file_path in the data
+    console.log('Document data:', doc)
+    
+    // Try to get document details first to see if file URL is available
+    let documentDetails = null
+    try {
+      const detailsResponse = await api.get(`/admin/documents/${doc.id}`)
+      if (detailsResponse.data.code === 200) {
+        documentDetails = detailsResponse.data.data
+        console.log('Document details:', documentDetails)
+        // Check if we can use file_url or file_path directly
+        if (documentDetails.file_url || documentDetails.file_path) {
+          // If file URL is available, we can fetch it directly
+          const fileUrl = documentDetails.file_url || documentDetails.file_path
+          if (fileUrl.startsWith('http')) {
+            // External URL
+            const fileResponse = await fetch(fileUrl)
+            const blob = await fileResponse.blob()
+            await processDocumentBlob(blob, doc)
+            return
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Could not fetch document details:', error)
+    }
+
+    // Try admin view endpoint first
+    let response
+    let blob
+    try {
+      response = await api.get(`/admin/documents/${doc.id}/view`, { responseType: 'blob' })
+      blob = response.data
+    } catch (error) {
+      // If admin endpoint doesn't exist (404), try student endpoint
+      if (error.response?.status === 404) {
+        console.warn('Admin view endpoint not available, trying student endpoint...')
+        try {
+          response = await api.get(`/common/student/documents/${doc.id}/view`, { responseType: 'blob' })
+          blob = response.data
+        } catch (studentError) {
+          // If student endpoint blocks admin (403), show helpful error
+          if (studentError.response?.status === 403) {
+            showErrorNotification('Admin access to view documents is not configured. Please contact the backend developer to add an admin view endpoint or allow admin access to the student endpoint.')
+            showViewer.value = false
+            viewerLoading.value = false
+            return
+          }
+          throw studentError
+        }
+      } else {
+        throw error
+      }
+    }
+
+    if (!(blob instanceof Blob)) {
+      throw new Error('Invalid response format')
+    }
+    
+    await processDocumentBlob(blob, doc)
+  } catch (error) {
+    showViewer.value = false
+    viewerLoading.value = false
+    showErrorNotification('Failed to load document')
+    console.error(error)
+  }
+}
+
+const processDocumentBlob = async (blob, doc) => {
+  try {
+    const blobUrl = URL.createObjectURL(blob)
+    
+    if (doc.file_type !== 'pdf') {
+      // For images
+      viewerLoading.value = false
+      await nextTick()
+      await new Promise(resolve => setTimeout(resolve, 150))
+      
+      const waitForCanvas = async (maxAttempts = 20) => {
+        for (let i = 0; i < maxAttempts; i++) {
+          await nextTick()
+          await new Promise(resolve => setTimeout(resolve, 50))
+          if (imageCanvas.value && document.contains(imageCanvas.value)) {
+            return true
+          }
+          const canvasInDom = document.querySelector('#document-viewer canvas')
+          if (canvasInDom) {
+            imageCanvas.value = canvasInDom
+            return true
+          }
+        }
+        return false
+      }
+      
+      const canvasAvailable = await waitForCanvas()
+      if (!canvasAvailable || !imageCanvas.value) {
+        const canvasElement = document.querySelector('#document-viewer canvas')
+        if (canvasElement) {
+          imageCanvas.value = canvasElement
+        } else {
+          documentUrl.value = blobUrl
+          viewerLoading.value = false
+          return
+        }
+      }
+      
+      try {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = (e) => resolve(e.target.result)
+          reader.onerror = reject
+          reader.readAsDataURL(blob)
+        })
+        await addWatermarkToImage(dataUrl)
+      } catch (error) {
+        console.error('Error adding watermark:', error)
+        try {
+          await addWatermarkToImage(blobUrl)
+        } catch (blobError) {
+          console.error('Both data URL and blob URL failed:', blobError)
+          documentUrl.value = blobUrl
+        }
+      }
+    } else {
+      // For PDFs
+      viewerLoading.value = false
+      pdfLoading.value = false
+      await nextTick()
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      try {
+        await renderPdfWithWatermark(blobUrl)
+      } catch (error) {
+        console.error('Error rendering PDF:', error)
+        documentUrl.value = blobUrl
+      }
+    }
+  } catch (error) {
+    console.error('Error processing document blob:', error)
+    throw error
+  }
+}
+
+const renderPdfWithWatermark = async (pdfUrl) => {
+  try {
+    const loadingTask = pdfjsLib.getDocument({ url: pdfUrl })
+    const pdf = await loadingTask.promise
+    
+    pdfPages.value = []
+    pdfCanvases.value = []
+    
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum)
+      const viewport = page.getViewport({ scale: 1.5 })
+      
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      
+      canvas.height = viewport.height
+      canvas.width = viewport.width
+      canvas.style.maxWidth = '100%'
+      canvas.style.width = viewport.width + 'px'
+      canvas.style.height = 'auto'
+      canvas.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
+      canvas.style.display = 'block'
+      canvas.style.margin = '0 auto 20px auto'
+      
+      const renderContext = {
+        canvasContext: ctx,
+        viewport: viewport
+      }
+      
+      await page.render(renderContext).promise
+      
+      // No watermark for admin - render PDF as-is
+      pdfPages.value.push({ pageNum, canvas, width: viewport.width, height: viewport.height })
+    }
+    
+    await nextTick()
+    
+    let attempts = 0
+    while (!pdfContainer.value && attempts < 20) {
+      await new Promise(resolve => setTimeout(resolve, 50))
+      await nextTick()
+      const containerInDom = document.querySelector('#pdf-container')
+      if (containerInDom) {
+        pdfContainer.value = containerInDom
+        break
+      }
+      attempts++
+    }
+    
+    if (pdfContainer.value) {
+      pdfContainer.value.innerHTML = ''
+      pdfPages.value.forEach((page) => {
+        pdfContainer.value.appendChild(page.canvas)
+      })
+    } else {
+      const containerInDom = document.querySelector('#pdf-container')
+      if (containerInDom) {
+        containerInDom.innerHTML = ''
+        pdfPages.value.forEach((page) => {
+          containerInDom.appendChild(page.canvas)
+        })
+      } else {
+        throw new Error('PDF container element not found in DOM')
+      }
+    }
+  } catch (error) {
+    console.error('Error rendering PDF:', error)
+    throw error
+  }
+}
+
+const addWatermarkToImage = async (imageUrl) => {
+  return new Promise((resolve, reject) => {
+    if (!imageCanvas.value) {
+      reject(new Error('Canvas not available'))
+      return
+    }
+    
+    const img = new Image()
+    
+    img.onload = () => {
+      try {
+        if (!img.width || !img.height || img.naturalWidth === 0 || img.naturalHeight === 0) {
+          reject(new Error('Image has invalid dimensions'))
+          return
+        }
+        
+        const canvas = imageCanvas.value
+        if (!canvas) {
+          reject(new Error('Canvas element not found'))
+          return
+        }
+        
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'))
+          return
+        }
+        
+        const maxWidth = window.innerWidth * 0.9
+        const maxHeight = window.innerHeight * 0.8
+        let canvasWidth = img.naturalWidth || img.width
+        let canvasHeight = img.naturalHeight || img.height
+        
+        if (canvasWidth > maxWidth || canvasHeight > maxHeight) {
+          const scale = Math.min(maxWidth / canvasWidth, maxHeight / canvasHeight)
+          canvasWidth = canvasWidth * scale
+          canvasHeight = canvasHeight * scale
+        }
+        
+        canvas.width = canvasWidth
+        canvas.height = canvasHeight
+        canvas.style.width = canvasWidth + 'px'
+        canvas.style.height = canvasHeight + 'px'
+        
+        ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight)
+        
+        // No watermark for admin - render image as-is
+        resolve()
+      } catch (error) {
+        console.error('Error in onload handler:', error)
+        reject(error)
+      }
+    }
+    
+    img.onerror = (error) => {
+      console.error('Image load error:', error)
+      reject(new Error('Failed to load image from blob URL'))
+    }
+    
+    img.src = imageUrl
+  })
+}
+
+const closeViewer = () => {
+  if (documentUrl.value) {
+    URL.revokeObjectURL(documentUrl.value)
+    documentUrl.value = ''
+  }
+  if (pdfContainer.value) {
+    pdfContainer.value.innerHTML = ''
+  }
+  pdfPages.value = []
+  pdfCanvases.value = []
+  showViewer.value = false
+  currentDocument.value = null
 }
 </script>
 

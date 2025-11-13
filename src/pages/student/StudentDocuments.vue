@@ -73,20 +73,13 @@
             class="full-width full-height"
             style="position: relative; overflow: hidden"
           >
-            <!-- PDF Viewer -->
-            <div v-if="currentDocument?.file_type === 'pdf'" style="position: relative; width: 100%; height: 100%">
-              <iframe
-                :src="documentUrl"
-                class="full-width full-height"
-                frameborder="0"
-                style="border: none"
-              />
-              <!-- Watermark Overlay for PDF -->
-              <div
-                class="watermark-overlay"
-                :style="watermarkStyle"
-              >
-                {{ watermarkText }}
+            <!-- PDF Viewer with Canvas Watermark -->
+            <div v-if="currentDocument?.file_type === 'pdf'" style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: auto">
+              <div v-if="pdfLoading" class="flex justify-center items-center" style="height: 100%">
+                <q-spinner color="primary" size="3em" />
+              </div>
+              <div v-else id="pdf-container" ref="pdfContainer" style="width: 100%; height: 100%; overflow: auto; text-align: center; padding: 20px">
+                <!-- PDF pages will be rendered here -->
               </div>
             </div>
             <!-- Image Viewer with Canvas Watermark -->
@@ -109,6 +102,10 @@ import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { api } from 'src/boot/axios'
 import { showErrorNotification } from 'src/utils/notification'
 import { useAuthStore } from 'src/stores/auth-store'
+import * as pdfjsLib from 'pdfjs-dist'
+
+// Configure PDF.js worker - use local file from public folder
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
 const rows = ref([])
 const loading = ref(true)
@@ -120,6 +117,10 @@ const imageCanvas = ref(null)
 const studentData = ref(null)
 const authStore = useAuthStore()
 const authUser = ref(null)
+const pdfLoading = ref(false)
+const pdfPages = ref([])
+const pdfCanvases = ref([])
+const pdfContainer = ref(null)
 
 // Computed watermark text
 const watermarkText = computed(() => {
@@ -127,30 +128,6 @@ const watermarkText = computed(() => {
   const date = new Date().toLocaleString()
   const email = studentData.value.email || studentData.value.student_id
   return `Confidential – viewed by ${email} on ${date}`
-})
-
-// Computed watermark style for overlay
-const watermarkStyle = computed(() => {
-  return {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    pointerEvents: 'none',
-    zIndex: 1000,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '20px',
-    color: 'rgba(0, 0, 0, 0.4)',
-    fontWeight: 'bold',
-    fontFamily: 'monospace',
-    textShadow: '2px 2px 4px rgba(255,255,255,0.9), -1px -1px 2px rgba(0,0,0,0.3)',
-    userSelect: 'none',
-    transform: 'rotate(-45deg)',
-    whiteSpace: 'nowrap',
-  }
 })
 
 const loadStudentData = async () => {
@@ -245,6 +222,118 @@ const loadDocuments = async () => {
     console.error(error)
   } finally {
     loading.value = false
+  }
+}
+
+const renderPdfWithWatermark = async (pdfUrl) => {
+  try {
+    // Load the PDF document
+    const loadingTask = pdfjsLib.getDocument({ url: pdfUrl })
+    const pdf = await loadingTask.promise
+    
+    pdfPages.value = []
+    pdfCanvases.value = []
+    
+    // Render each page
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum)
+      const viewport = page.getViewport({ scale: 1.5 })
+      
+      // Create canvas element
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      
+      canvas.height = viewport.height
+      canvas.width = viewport.width
+      // Set responsive styles
+      canvas.style.maxWidth = '100%'
+      canvas.style.width = viewport.width + 'px'
+      canvas.style.height = 'auto'
+      canvas.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
+      canvas.style.display = 'block'
+      canvas.style.margin = '0 auto 20px auto'
+      
+      // Render PDF page to canvas
+      const renderContext = {
+        canvasContext: ctx,
+        viewport: viewport
+      }
+      
+      await page.render(renderContext).promise
+      
+      // Add watermark to the rendered page
+      const text = watermarkText.value
+      const fontSize = Math.max(20, Math.min(viewport.width / 25, 32))
+      ctx.font = `bold ${fontSize}px monospace`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      
+      ctx.save()
+      ctx.globalAlpha = 0.5
+      ctx.fillStyle = '#000000'
+      ctx.strokeStyle = '#ffffff'
+      ctx.lineWidth = 3
+      
+      // Position at center of page
+      ctx.translate(viewport.width / 2, viewport.height / 2)
+      ctx.rotate(-Math.PI / 4) // 45 degree rotation
+      
+      ctx.strokeText(text, 0, 0)
+      ctx.fillText(text, 0, 0)
+      ctx.restore()
+      
+      // Store canvas reference
+      pdfPages.value.push({ 
+        pageNum, 
+        canvas,
+        width: viewport.width,
+        height: viewport.height
+      })
+    }
+    
+    // Wait for Vue to update and container to be available
+    await nextTick()
+    
+    // Wait for container to be rendered in DOM
+    let attempts = 0
+    while (!pdfContainer.value && attempts < 20) {
+      await new Promise(resolve => setTimeout(resolve, 50))
+      await nextTick()
+      // Also try to find it directly in DOM
+      if (!pdfContainer.value) {
+        const containerInDom = document.querySelector('#pdf-container')
+        if (containerInDom) {
+          pdfContainer.value = containerInDom
+          break
+        }
+      }
+      attempts++
+    }
+    
+    // Append canvases to container
+    if (pdfContainer.value) {
+      pdfContainer.value.innerHTML = '' // Clear container
+      pdfPages.value.forEach((page) => {
+        pdfContainer.value.appendChild(page.canvas)
+      })
+      console.log(`Successfully rendered ${pdfPages.value.length} PDF pages`)
+    } else {
+      console.error('PDF container not found after', attempts, 'attempts')
+      // Try one more time with DOM query
+      const containerInDom = document.querySelector('#pdf-container')
+      if (containerInDom) {
+        containerInDom.innerHTML = ''
+        pdfPages.value.forEach((page) => {
+          containerInDom.appendChild(page.canvas)
+        })
+        console.log('PDF pages rendered using DOM query fallback')
+      } else {
+        throw new Error('PDF container element not found in DOM')
+      }
+    }
+  } catch (error) {
+    console.error('Error rendering PDF:', error)
+    throw error
   }
 }
 
@@ -491,9 +580,21 @@ const viewDocument = async (doc) => {
       }
       // viewerLoading is already set to false above for images
     } else {
-      // For PDFs, use the blob URL directly (watermark overlay will be added via CSS)
-      documentUrl.value = blobUrl
+      // For PDFs, render with watermark on canvas
       viewerLoading.value = false
+      // Set pdfLoading to false first so container is rendered
+      pdfLoading.value = false
+      await nextTick()
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      try {
+        await renderPdfWithWatermark(blobUrl)
+      } catch (error) {
+        console.error('Error rendering PDF:', error)
+        // Fallback to iframe if PDF.js fails
+        documentUrl.value = blobUrl
+        pdfLoading.value = true // Show loading state on error
+      }
     }
 
     // Reload documents to update view count
@@ -518,6 +619,12 @@ const closeViewer = () => {
     URL.revokeObjectURL(documentUrl.value)
     documentUrl.value = ''
   }
+  // Clean up PDF pages
+  if (pdfContainer.value) {
+    pdfContainer.value.innerHTML = ''
+  }
+  pdfPages.value = []
+  pdfCanvases.value = []
   showViewer.value = false
   currentDocument.value = null
 }
@@ -550,6 +657,19 @@ const closeViewer = () => {
   -moz-user-drag: none;
   -o-user-drag: none;
   user-drag: none;
+}
+
+#pdf-container canvas {
+  pointer-events: none;
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 /* Watermark overlay styles */
