@@ -85,9 +85,9 @@
 </template>
 
 <script setup>
-import { onBeforeMount, ref } from 'vue'
+import { onBeforeMount, ref, watch } from 'vue'
 import DashboardLink from 'components/admin/DashboardLink.vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth-store'
 import { getFirstLetterOfString } from 'src/utils/common-utlits'
 
@@ -96,15 +96,27 @@ defineOptions({
 })
 
 const router = useRouter()
+const route = useRoute()
 const dashboardRoutesList = ref([])
 const headerTitle = ref('')
 const authStore = useAuthStore()
 const miniState = ref(false)
 const drawer = ref(true)
 
+const updateHeaderTitleFromRoute = () => {
+  const currentPath = route.path
+  const matchedRoute = dashboardRoutesList.value.find((r) => r.route === currentPath)
+  if (matchedRoute) {
+    headerTitle.value = matchedRoute.title
+  } else {
+    // Fallback to Dashboard if no match found
+    headerTitle.value = dashboardRoutesList.value[0]?.title || 'Dashboard'
+  }
+}
+
 const dashboardLinkClicked = async (dashboardRoute) => {
-  const { route, title } = dashboardRoute
-  router.push(route)
+  const { route: routePath, title } = dashboardRoute
+  router.push(routePath)
   headerTitle.value = title
 }
 
@@ -116,12 +128,23 @@ const getAdminData = async () => {
       authStore.authUser = response.data.data
 
       dashboardRoutesList.value = await authStore.adminDashboardRouteBuild()
-      headerTitle.value = dashboardRoutesList.value[0].title
+      // Update header title based on current route
+      updateHeaderTitleFromRoute()
     }
   } catch (error) {
     console.error(error)
   }
 }
+
+// Watch for route changes to update header title
+watch(
+  () => route.path,
+  () => {
+    if (dashboardRoutesList.value.length > 0) {
+      updateHeaderTitleFromRoute()
+    }
+  }
+)
 
 onBeforeMount(() => {
   getAdminData()

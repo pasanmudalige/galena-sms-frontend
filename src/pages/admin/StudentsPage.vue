@@ -1,343 +1,573 @@
 <template>
-  <q-page class="p-6">
-    <div class="flex justify-between items-center mb-4">
-      <div class="text-xl font-semibold">Manage Students</div>
-      <q-btn no-caps color="primary" icon="add" label="Add Student" @click="showAdd = true" />
-    </div>
-    <q-table :rows="rows" :columns="columns" row-key="id" flat bordered>
-      <template #body-cell-pending_access="props">
-        <q-td :props="props">
-          <q-badge v-if="props.value" color="orange" label="Pending Access" />
-        </q-td>
-      </template>
-      <template #body-cell-actions="props">
-        <q-td :props="props">
+  <q-page class="q-pa-md">
+    <div class="q-pa-md">
+      <!-- Page Header -->
+      <div class="row items-center q-mb-lg">
+        <div class="col">
+          <!-- <div class="text-h4 text-weight-bold text-grey-8">Manage Students</div> -->
+          <div class="text-subtitle2 text-grey-6">View and manage all student records</div>
+        </div>
+        <div class="col-auto">
           <q-btn
-            v-if="props.row.pending_access && !props.row.user_id"
-            dense
-            flat
-            round
-            icon="vpn_key"
-            color="positive"
-            class="mr-1"
-            @click="grantAccess(props.row)"
-            title="Grant Access"
-          />
-          <q-btn
-            v-else-if="props.row.user_id"
-            dense
-            flat
-            round
-            icon="lock_reset"
-            color="warning"
-            class="mr-1"
-            @click="resetPassword(props.row)"
-            title="Reset Password"
-          />
-          <q-btn
-            dense
-            flat
-            round
-            icon="edit"
+            no-caps
             color="primary"
-            class="mr-1"
-            @click="onEdit(props.row)"
+            icon="add"
+            label="Add Student"
+            unelevated
+            @click="showAdd = true"
           />
-          <q-btn dense flat round icon="delete" color="negative" @click="onDelete(props.row)" />
-        </q-td>
-      </template>
-    </q-table>
-    <q-dialog v-model="showAdd" persistent>
-      <q-card class="rounded-xl shadow-lg" style="min-width: 540px; max-width: 600px">
-        <!-- Header -->
-        <q-card-section
-          class="bg-primary text-white text-lg font-semibold flex items-center justify-between rounded-t-xl"
-        >
-          <div>Add Student</div>
-          <q-btn flat dense round icon="close" color="white" v-close-popup />
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="row q-col-gutter-md q-mb-md">
+        <div class="col-12 col-sm-6 col-md-3">
+          <q-card flat bordered class="stat-card stat-card-blue">
+            <q-card-section class="q-pa-md">
+              <div class="row items-center">
+                <div class="col">
+                  <div class="text-overline text-grey-7">Total Students</div>
+                  <div class="text-h4 text-weight-bold text-primary q-mt-xs">
+                    {{ rows.length }}
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <q-avatar size="56px" color="blue-1" text-color="primary">
+                    <q-icon name="people" size="32px" />
+                  </q-avatar>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+          <q-card flat bordered class="stat-card stat-card-green">
+            <q-card-section class="q-pa-md">
+              <div class="row items-center">
+                <div class="col">
+                  <div class="text-overline text-grey-7">Active Students</div>
+                  <div class="text-h4 text-weight-bold text-positive q-mt-xs">
+                    {{ activeStudentsCount }}
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <q-avatar size="56px" color="green-1" text-color="positive">
+                    <q-icon name="check_circle" size="32px" />
+                  </q-avatar>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+          <q-card flat bordered class="stat-card stat-card-orange">
+            <q-card-section class="q-pa-md">
+              <div class="row items-center">
+                <div class="col">
+                  <div class="text-overline text-grey-7">Pending Access</div>
+                  <div class="text-h4 text-weight-bold text-warning q-mt-xs">
+                    {{ pendingAccessCount }}
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <q-avatar size="56px" color="orange-1" text-color="warning">
+                    <q-icon name="schedule" size="32px" />
+                  </q-avatar>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+          <q-card flat bordered class="stat-card stat-card-red">
+            <q-card-section class="q-pa-md">
+              <div class="row items-center">
+                <div class="col">
+                  <div class="text-overline text-grey-7">Inactive Students</div>
+                  <div class="text-h4 text-weight-bold text-negative q-mt-xs">
+                    {{ inactiveStudentsCount }}
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <q-avatar size="56px" color="red-1" text-color="negative">
+                    <q-icon name="block" size="32px" />
+                  </q-avatar>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+      </div>
+
+      <!-- Students Table -->
+      <q-card flat bordered>
+        <q-card-section class="q-pa-md">
+          <q-table
+            :rows="rows"
+            :columns="columns"
+            row-key="id"
+            flat
+            bordered
+            :loading="loading"
+            :rows-per-page-options="[10, 20, 50, 100]"
+            class="students-table"
+          >
+            <template #top>
+              <div class="text-h6 text-weight-bold text-grey-8">Students List</div>
+            </template>
+
+            <template #body-cell-status="props">
+              <q-td :props="props">
+                <q-chip
+                  :color="props.value === 'active' ? 'positive' : 'negative'"
+                  text-color="white"
+                  :icon="props.value === 'active' ? 'check_circle' : 'block'"
+                  size="sm"
+                >
+                  {{ props.value || 'active' }}
+                </q-chip>
+              </q-td>
+            </template>
+
+            <template #body-cell-pending_access="props">
+              <q-td :props="props">
+                <q-badge v-if="props.value" color="orange" label="Pending Access" />
+                <q-badge v-else color="positive" label="Access Granted" />
+              </q-td>
+            </template>
+
+            <template #body-cell-actions="props">
+              <q-td :props="props">
+                <q-btn
+                  v-if="props.row.pending_access && !props.row.user_id"
+                  dense
+                  flat
+                  round
+                  icon="vpn_key"
+                  color="positive"
+                  class="q-mr-xs"
+                  @click="grantAccess(props.row)"
+                  title="Grant Access"
+                />
+                <q-btn
+                  v-else-if="props.row.user_id"
+                  dense
+                  flat
+                  round
+                  icon="lock_reset"
+                  color="warning"
+                  class="q-mr-xs"
+                  @click="resetPassword(props.row)"
+                  title="Reset Password"
+                />
+                <q-btn
+                  dense
+                  flat
+                  round
+                  icon="edit"
+                  color="primary"
+                  class="q-mr-xs"
+                  @click="onEdit(props.row)"
+                  title="Edit Student"
+                />
+                <q-btn
+                  dense
+                  flat
+                  round
+                  icon="delete"
+                  color="negative"
+                  @click="onDelete(props.row)"
+                  title="Delete Student"
+                />
+              </q-td>
+            </template>
+          </q-table>
         </q-card-section>
+      </q-card>
 
-        <q-separator color="grey-4" />
+      <!-- Add Student Dialog -->
+      <q-dialog v-model="showAdd" persistent>
+        <q-card class="rounded-xl shadow-lg" style="min-width: 540px; max-width: 600px">
+          <!-- Header -->
+          <q-card-section
+            class="bg-primary text-white text-lg font-semibold flex items-center justify-between rounded-t-xl"
+          >
+            <div>Add Student</div>
+            <q-btn flat dense round icon="close" color="white" v-close-popup />
+          </q-card-section>
 
-        <!-- Form Section -->
-        <q-card-section class="q-pa-lg bg-grey-1">
-          <q-form @submit.prevent="submitAdd" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <q-input
-                v-model="form.student_name"
-                label="Student Name"
-                dense
-                outlined
-                :rules="[(v) => !!v || 'Required']"
-              />
-              <q-input
-                v-model="form.student_id"
-                label="Student ID (optional)"
-                dense
-                outlined
-                hint="Leave empty to auto-generate"
-              />
-              <q-input v-model="form.school" label="School" dense outlined />
-              <q-input
-                v-model="form.phone"
-                label="Phone (WhatsApp)"
-                dense
-                outlined
-                :rules="[(v) => !!v || 'Required']"
-              />
-              <q-input v-model="form.parent_phone" label="Parent Phone" dense outlined />
-              <q-input
-                v-model="form.email"
-                label="Email"
-                dense
-                outlined
-                type="email"
-                :rules="[
-                  (v) => !!v || 'Required',
-                  (v) => !form.grant_access_immediately || !!v || 'Email is required to grant access',
-                ]"
-              />
+          <q-separator color="grey-4" />
 
-              <q-input
-                v-model="form.address"
-                label="Address"
-                dense
-                outlined
-                type="textarea"
-                autogrow
-                class="md:col-span-2"
-              />
-
-              <q-select
-                v-model="form.year_of_al"
-                label="Year of A/L"
-                dense
-                outlined
-                :options="alYears"
-                emit-value
-                map-options
-                clearable
-              />
-
-              <div class="md:col-span-2">
-                <div class="text-sm text-grey-8 font-medium mb-2">Where did you hear about us?</div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div
-                    v-for="option in hearAboutUsOptions"
-                    :key="option.value"
-                    class="bg-white rounded-lg p-2 shadow-sm"
-                  >
-                    <q-checkbox
-                      :val="option.value"
-                      v-model="form.hear_about_us"
-                      :label="option.label"
-                      dense
-                      color="primary"
-                    />
+          <!-- Form Section -->
+          <q-card-section class="q-pa-lg bg-grey-1">
+            <q-form @submit.prevent="submitAdd" class="q-gutter-md">
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-md-6">
+                  <q-input
+                    v-model="form.student_name"
+                    label="Student Name *"
+                    dense
+                    outlined
+                    :rules="[(v) => !!v || 'Required']"
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-input
+                    v-model="form.student_id"
+                    label="Student ID (optional)"
+                    dense
+                    outlined
+                    hint="Leave empty to auto-generate"
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-input v-model="form.school" label="School" dense outlined />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-input
+                    v-model="form.phone"
+                    label="Phone (WhatsApp) *"
+                    dense
+                    outlined
+                    :rules="[(v) => !!v || 'Required']"
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-input v-model="form.parent_phone" label="Parent Phone" dense outlined />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-input
+                    v-model="form.email"
+                    label="Email *"
+                    dense
+                    outlined
+                    type="email"
+                    :rules="[
+                      (v) => !!v || 'Required',
+                      (v) =>
+                        !form.grant_access_immediately ||
+                        !!v ||
+                        'Email is required to grant access',
+                    ]"
+                  />
+                </div>
+                <div class="col-12">
+                  <q-input
+                    v-model="form.address"
+                    label="Address"
+                    dense
+                    outlined
+                    type="textarea"
+                    autogrow
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-select
+                    v-model="form.year_of_al"
+                    label="Year of A/L"
+                    dense
+                    outlined
+                    :options="alYears"
+                    emit-value
+                    map-options
+                    clearable
+                  />
+                </div>
+                <div class="col-12">
+                  <div class="text-sm text-grey-8 font-medium q-mb-sm">
+                    Where did you hear about us?
+                  </div>
+                  <div class="row q-col-gutter-sm">
+                    <div
+                      class="col-12 col-sm-6"
+                      v-for="option in hearAboutUsOptions"
+                      :key="option.value"
+                    >
+                      <q-card flat bordered class="q-pa-xs">
+                        <q-checkbox
+                          :val="option.value"
+                          v-model="form.hear_about_us"
+                          :label="option.label"
+                          dense
+                          color="primary"
+                        />
+                      </q-card>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <q-checkbox
+                    v-model="form.grant_access_immediately"
+                    label="Grant access immediately (generate username and password)"
+                    color="primary"
+                    dense
+                  />
+                  <div class="text-xs text-grey-6 q-mt-xs">
+                    If checked, access credentials will be generated and shown after saving
                   </div>
                 </div>
               </div>
 
-              <div class="md:col-span-2">
-                <q-checkbox
-                  v-model="form.grant_access_immediately"
-                  label="Grant access immediately (generate username and password)"
+              <!-- Actions -->
+              <div class="flex justify-end q-gutter-sm q-mt-lg">
+                <q-btn flat no-caps label="Cancel" color="grey-7" v-close-popup />
+                <q-btn
                   color="primary"
-                  dense
+                  no-caps
+                  label="Save"
+                  type="submit"
+                  :loading="saving"
+                  unelevated
                 />
-                <div class="text-xs text-grey-6 mt-1">
-                  If checked, access credentials will be generated and shown after saving
-                </div>
               </div>
-            </div>
+            </q-form>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
 
-            <!-- Actions -->
-            <div class="flex justify-end gap-3 pt-4 border-t border-gray-300">
-              <q-btn
-                flat
-                no-caps
-                label="Cancel"
-                color="grey-7"
-                class="hover:text-grey-9"
-                v-close-popup
-              />
-              <q-btn
-                color="primary"
-                no-caps
-                label="Save"
-                type="submit"
-                :loading="saving"
-                class="text-white shadow-md hover:shadow-lg"
-              />
-            </div>
-          </q-form>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-
-    <q-dialog v-model="showEdit" persistent>
-      <q-card style="min-width: 520px">
-        <q-card-section class="text-lg font-semibold">Edit Student</q-card-section>
-        <q-separator />
-        <q-card-section>
-          <q-form @submit.prevent="submitEdit">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <q-input
-                v-model="editForm.student_name"
-                label="Student Name"
-                dense
-                outlined
-                :rules="[(v) => !!v || 'Required']"
-              />
-              <q-input v-model="editForm.student_id" label="Student ID" dense outlined />
-              <q-input v-model="editForm.school" label="School" dense outlined />
-              <q-input
-                v-model="editForm.phone"
-                label="Phone (WhatsApp)"
-                dense
-                outlined
-                :rules="[(v) => !!v || 'Required']"
-              />
-              <q-input v-model="editForm.parent_phone" label="Parent Phone" dense outlined />
-              <q-input v-model="editForm.email" label="Email" dense outlined type="email" />
-              <q-select
-                v-model="editForm.status"
-                label="Status"
-                dense
-                outlined
-                :options="statusOptions"
-                class="md:col-span-2"
-              />
-              <q-input
-                v-model="editForm.address"
-                label="Address"
-                dense
-                outlined
-                type="textarea"
-                autogrow
-                class="md:col-span-2"
-              />
-              <q-select
-                v-model="editForm.year_of_al"
-                label="Year of A/L"
-                dense
-                outlined
-                :options="alYears"
-                emit-value
-                map-options
-                clearable
-              />
-              <div class="md:col-span-2">
-                <div class="text-sm text-grey-7 q-mb-sm">Where did you hear about us?</div>
-                <div class="row q-col-gutter-sm">
-                  <div
-                    class="col-12 col-sm-6"
-                    v-for="option in hearAboutUsOptions"
-                    :key="option.value"
+      <!-- Edit Student Dialog -->
+      <q-dialog v-model="showEdit" persistent>
+        <q-card class="rounded-xl shadow-lg" style="min-width: 540px; max-width: 600px">
+          <q-card-section
+            class="bg-primary text-white text-lg font-semibold flex items-center justify-between rounded-t-xl"
+          >
+            <div>Edit Student</div>
+            <q-btn flat dense round icon="close" color="white" v-close-popup />
+          </q-card-section>
+          <q-separator />
+          <q-card-section class="q-pa-lg bg-grey-1">
+            <q-form @submit.prevent="submitEdit" class="q-gutter-md">
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-md-6">
+                  <q-input
+                    v-model="editForm.student_name"
+                    label="Student Name *"
+                    dense
+                    outlined
+                    :rules="[(v) => !!v || 'Required']"
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-input v-model="editForm.student_id" label="Student ID" dense outlined />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-input v-model="editForm.school" label="School" dense outlined />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-input
+                    v-model="editForm.phone"
+                    label="Phone (WhatsApp) *"
+                    dense
+                    outlined
+                    :rules="[(v) => !!v || 'Required']"
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-input v-model="editForm.parent_phone" label="Parent Phone" dense outlined />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-input v-model="editForm.email" label="Email" dense outlined type="email" />
+                </div>
+                <div class="col-12">
+                  <q-select
+                    v-model="editForm.status"
+                    label="Status *"
+                    dense
+                    outlined
+                    :options="statusOptions"
+                    option-label="label"
+                    option-value="value"
+                    emit-value
+                    map-options
                   >
-                    <q-checkbox
-                      :val="option.value"
-                      v-model="editForm.hear_about_us"
-                      :label="option.label"
-                      dense
-                    />
+                    <template #option="scope">
+                      <q-item v-bind="scope.itemProps">
+                        <q-item-section avatar>
+                          <q-icon
+                            :name="scope.opt.value === 'active' ? 'check_circle' : 'block'"
+                            :color="scope.opt.value === 'active' ? 'positive' : 'negative'"
+                          />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>{{ scope.opt.label }}</q-item-label>
+                          <q-item-label caption>
+                            {{
+                              scope.opt.value === 'active'
+                                ? 'Student can login'
+                                : 'Student will be blocked from login'
+                            }}
+                          </q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                    <template #selected>
+                      <span v-if="editForm.status">
+                        {{
+                          statusOptions.find((opt) => opt.value === editForm.status)?.label ||
+                          editForm.status
+                        }}
+                      </span>
+                    </template>
+                  </q-select>
+                </div>
+                <div class="col-12">
+                  <q-input
+                    v-model="editForm.address"
+                    label="Address"
+                    dense
+                    outlined
+                    type="textarea"
+                    autogrow
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-select
+                    v-model="editForm.year_of_al"
+                    label="Year of A/L"
+                    dense
+                    outlined
+                    :options="alYears"
+                    emit-value
+                    map-options
+                    clearable
+                  />
+                </div>
+                <div class="col-12">
+                  <div class="text-sm text-grey-7 q-mb-sm">Where did you hear about us?</div>
+                  <div class="row q-col-gutter-sm">
+                    <div
+                      class="col-12 col-sm-6"
+                      v-for="option in hearAboutUsOptions"
+                      :key="option.value"
+                    >
+                      <q-card flat bordered class="q-pa-xs">
+                        <q-checkbox
+                          :val="option.value"
+                          v-model="editForm.hear_about_us"
+                          :label="option.label"
+                          dense
+                        />
+                      </q-card>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div class="flex justify-end gap-2 mt-4">
-              <q-btn flat no-caps label="Cancel" v-close-popup />
-              <q-btn color="primary" no-caps label="Update" type="submit" :loading="saving" />
-            </div>
-          </q-form>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-
-    <q-dialog v-model="showSuccess">
-      <q-card style="min-width: 420px">
-        <q-card-section class="text-center">
-          <q-icon name="check_circle" color="positive" size="64px" />
-          <div class="text-xl font-semibold mt-2">{{ successMessage }}</div>
-          <div v-if="createdStudentId" class="text-gray-600 mt-1">
-            Student ID: <span class="font-mono">{{ createdStudentId }}</span>
-          </div>
-        </q-card-section>
-        <q-card-actions align="center">
-          <q-btn color="primary" no-caps label="OK" @click="closeSuccess" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-    <!-- Credentials Dialog -->
-    <q-dialog v-model="showCredentials" persistent>
-      <q-card style="min-width: 500px">
-        <q-card-section class="bg-primary text-white text-lg font-semibold">
-          Student Login Credentials
-        </q-card-section>
-        <q-separator />
-        <q-card-section>
-          <div class="space-y-3">
-            <div>
-              <div class="text-sm text-grey-7 mb-1">Student Name</div>
-              <div class="text-lg font-semibold">{{ credentials.student_name }}</div>
-            </div>
-            <div>
-              <div class="text-sm text-grey-7 mb-1">Student ID</div>
-              <div class="text-lg font-mono">{{ credentials.student_id }}</div>
-            </div>
-            <q-separator />
-            <div>
-              <div class="text-sm text-grey-7 mb-1">Username (Email)</div>
-              <div class="flex items-center gap-2">
-                <div class="text-lg font-mono flex-1 bg-grey-2 p-2 rounded">{{ credentials.username }}</div>
+              <div class="flex justify-end q-gutter-sm q-mt-lg">
+                <q-btn flat no-caps label="Cancel" v-close-popup />
                 <q-btn
-                  flat
-                  dense
-                  round
-                  icon="content_copy"
                   color="primary"
-                  @click="copyToClipboard(credentials.username)"
+                  no-caps
+                  label="Update"
+                  type="submit"
+                  :loading="saving"
+                  unelevated
                 />
               </div>
+            </q-form>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
+
+      <!-- Success Dialog -->
+      <q-dialog v-model="showSuccess">
+        <q-card class="rounded-xl" style="min-width: 420px">
+          <q-card-section class="text-center q-pa-lg">
+            <q-icon name="check_circle" color="positive" size="64px" />
+            <div class="text-h6 text-weight-bold q-mt-md">{{ successMessage }}</div>
+            <div v-if="createdStudentId" class="text-grey-7 q-mt-sm">
+              Student ID: <span class="text-weight-bold">{{ createdStudentId }}</span>
             </div>
-            <div>
-              <div class="text-sm text-grey-7 mb-1">Password</div>
-              <div class="flex items-center gap-2">
-                <div class="text-lg font-mono flex-1 bg-grey-2 p-2 rounded">{{ credentials.password }}</div>
-                <q-btn
-                  flat
-                  dense
-                  round
-                  icon="content_copy"
-                  color="primary"
-                  @click="copyToClipboard(credentials.password)"
-                />
+          </q-card-section>
+          <q-card-actions align="center" class="q-pb-lg">
+            <q-btn color="primary" no-caps label="OK" unelevated @click="closeSuccess" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <!-- Credentials Dialog -->
+      <q-dialog v-model="showCredentials" persistent>
+        <q-card class="rounded-xl" style="min-width: 500px">
+          <q-card-section class="bg-primary text-white text-lg font-semibold rounded-t-xl">
+            Student Login Credentials
+          </q-card-section>
+          <q-separator />
+          <q-card-section class="q-pa-lg">
+            <div class="q-gutter-md">
+              <div>
+                <div class="text-caption text-grey-7 q-mb-xs">Student Name</div>
+                <div class="text-body1 text-weight-bold">{{ credentials.student_name }}</div>
               </div>
-            </div>
-            <q-separator />
-            <div class="bg-blue-1 p-3 rounded">
-              <div class="text-sm text-grey-8">
-                <strong>Note:</strong> Copy these credentials and send them to the student via WhatsApp.
-                The password is shown only once.
+              <div>
+                <div class="text-caption text-grey-7 q-mb-xs">Student ID</div>
+                <div class="text-body1 font-mono">{{ credentials.student_id }}</div>
               </div>
+              <q-separator />
+              <div>
+                <div class="text-caption text-grey-7 q-mb-xs">Username (Email)</div>
+                <div class="row items-center q-gutter-xs">
+                  <div class="col text-body1 font-mono bg-grey-2 q-pa-sm rounded-borders">
+                    {{ credentials.username }}
+                  </div>
+                  <q-btn
+                    flat
+                    dense
+                    round
+                    icon="content_copy"
+                    color="primary"
+                    @click="copyToClipboard(credentials.username)"
+                  />
+                </div>
+              </div>
+              <div>
+                <div class="text-caption text-grey-7 q-mb-xs">Password</div>
+                <div class="row items-center q-gutter-xs">
+                  <div class="col text-body1 font-mono bg-grey-2 q-pa-sm rounded-borders">
+                    {{ credentials.password }}
+                  </div>
+                  <q-btn
+                    flat
+                    dense
+                    round
+                    icon="content_copy"
+                    color="primary"
+                    @click="copyToClipboard(credentials.password)"
+                  />
+                </div>
+              </div>
+              <q-separator />
+              <q-banner class="bg-blue-1 text-blue-9 rounded-borders">
+                <template #avatar>
+                  <q-icon name="info" color="blue" />
+                </template>
+                <div class="text-caption">
+                  <strong>Note:</strong> Copy these credentials and send them to the student via
+                  WhatsApp. The password is shown only once.
+                </div>
+              </q-banner>
             </div>
-          </div>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat no-caps label="Copy All" color="primary" @click="copyAllCredentials" />
-          <q-btn flat no-caps label="Close" color="grey-7" v-close-popup />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+          </q-card-section>
+          <q-card-actions align="right" class="q-pa-md">
+            <q-btn flat no-caps label="Copy All" color="primary" @click="copyAllCredentials" />
+            <q-btn flat no-caps label="Close" color="grey-7" v-close-popup />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+    </div>
   </q-page>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { api } from 'src/boot/axios'
+import { showSuccessNotification, showErrorNotification } from 'src/utils/notification'
+import { useQuasar } from 'quasar'
 
+const $q = useQuasar()
 const rows = ref([])
+const loading = ref(false)
 const showAdd = ref(false)
 const showEdit = ref(false)
 const showSuccess = ref(false)
@@ -376,7 +606,10 @@ const editForm = ref({
   hear_about_us: [],
   status: 'active',
 })
-const statusOptions = ['active', 'inactive']
+const statusOptions = [
+  { label: 'Active', value: 'active' },
+  { label: 'Inactive', value: 'inactive' },
+]
 const alYears = ref([])
 const hearAboutUsOptions = [
   { label: 'From Poster', value: 'From Poster' },
@@ -386,7 +619,7 @@ const hearAboutUsOptions = [
   { label: 'A Friend Or Colleague', value: 'A Friend Or Colleague' },
 ]
 const columns = [
-  { name: 'student_id', label: 'Student Id', field: 'student_id', align: 'left', sortable: true },
+  { name: 'student_id', label: 'Student ID', field: 'student_id', align: 'left', sortable: true },
   { name: 'student_name', label: 'Name', field: 'student_name', align: 'left', sortable: true },
   { name: 'school', label: 'School', field: 'school', align: 'left', sortable: true },
   { name: 'year_of_al', label: 'Year of A/L', field: 'year_of_al', align: 'left', sortable: true },
@@ -399,11 +632,23 @@ const columns = [
   },
   { name: 'email', label: 'Email', field: 'email', align: 'left' },
   { name: 'phone', label: 'Phone', field: 'phone', align: 'left' },
-  { name: 'pending_access', label: 'Access Status', field: 'pending_access', align: 'left' },
   { name: 'status', label: 'Status', field: 'status', align: 'left' },
+  { name: 'pending_access', label: 'Access Status', field: 'pending_access', align: 'left' },
   { name: 'createdAt', label: 'Registered', field: 'createdAt', align: 'left', sortable: true },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'right' },
 ]
+
+const activeStudentsCount = computed(() => {
+  return rows.value.filter((r) => r.status === 'active').length
+})
+
+const inactiveStudentsCount = computed(() => {
+  return rows.value.filter((r) => r.status === 'inactive').length
+})
+
+const pendingAccessCount = computed(() => {
+  return rows.value.filter((r) => r.pending_access && !r.user_id).length
+})
 
 const loadALYears = async () => {
   try {
@@ -431,9 +676,17 @@ const formatHearAboutUs = (val) => {
 }
 
 const load = async () => {
-  const res = await api.get('/admin/students')
-  if (res.status === 200 && res.data?.data) {
-    rows.value = res.data.data
+  loading.value = true
+  try {
+    const res = await api.get('/admin/students')
+    if (res.status === 200 && res.data?.data) {
+      rows.value = res.data.data
+    }
+  } catch (error) {
+    showErrorNotification('Failed to load students')
+    console.error(error)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -446,7 +699,6 @@ const onEdit = (row) => {
       hearAboutUs = JSON.parse(row.hear_about_us)
     } catch (e) {
       console.log(e)
-      // If not JSON, treat as string (for backward compatibility)
       hearAboutUs = row.hear_about_us ? [row.hear_about_us] : []
     }
   }
@@ -480,15 +732,32 @@ const submitEdit = async () => {
       createdStudentId.value = ''
       showSuccess.value = true
       await load()
+      showSuccessNotification('Student updated successfully')
     }
+  } catch (error) {
+    showErrorNotification('Failed to update student')
+    console.error(error)
   } finally {
     saving.value = false
   }
 }
 
 const onDelete = async (row) => {
-  await api.delete(`/admin/students/${row.id}`)
-  await load()
+  $q.dialog({
+    title: 'Confirm Delete',
+    message: `Are you sure you want to delete ${row.student_name}?`,
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    try {
+      await api.delete(`/admin/students/${row.id}`)
+      await load()
+      showSuccessNotification('Student deleted successfully')
+    } catch (error) {
+      showErrorNotification('Failed to delete student')
+      console.error(error)
+    }
+  })
 }
 
 onMounted(() => {
@@ -517,7 +786,7 @@ const submitAdd = async () => {
       createdStudentId.value = res.data?.data?.student_id || payload.student_id
       successMessage.value = 'Student added successfully'
       showAdd.value = false
-      
+
       // If grant access immediately is checked, grant access
       if (grantAccessImmediately && studentId && payload.email) {
         try {
@@ -533,13 +802,12 @@ const submitAdd = async () => {
           }
         } catch (error) {
           console.error('Grant access error:', error)
-          // Still show success message even if grant access fails
           showSuccess.value = true
         }
       } else {
         showSuccess.value = true
       }
-      
+
       form.value = {
         student_name: '',
         student_id: '',
@@ -553,7 +821,11 @@ const submitAdd = async () => {
         grant_access_immediately: false,
       }
       await load()
+      showSuccessNotification('Student added successfully')
     }
+  } catch (error) {
+    showErrorNotification('Failed to add student')
+    console.error(error)
   } finally {
     saving.value = false
   }
@@ -566,52 +838,70 @@ const closeSuccess = () => {
 }
 
 const grantAccess = async (row) => {
-  if (!confirm(`Grant access to ${row.student_name}?`)) return
-  try {
-    const res = await api.post(`/admin/students/${row.id}/grant-access`)
-    if (res.status === 200 && res.data?.data) {
-      credentials.value = {
-        student_name: res.data.data.student_name,
-        student_id: res.data.data.student_id,
-        username: res.data.data.username,
-        password: res.data.data.password,
+  $q.dialog({
+    title: 'Grant Access',
+    message: `Grant access to ${row.student_name}?`,
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    try {
+      const res = await api.post(`/admin/students/${row.id}/grant-access`)
+      if (res.status === 200 && res.data?.data) {
+        credentials.value = {
+          student_name: res.data.data.student_name,
+          student_id: res.data.data.student_id,
+          username: res.data.data.username,
+          password: res.data.data.password,
+        }
+        showCredentials.value = true
+        await load()
+        showSuccessNotification('Access granted successfully')
       }
-      showCredentials.value = true
-      await load()
+    } catch (error) {
+      console.error('Grant access error:', error)
+      if (error.response?.data?.message) {
+        showErrorNotification(error.response.data.message)
+      } else {
+        showErrorNotification('Failed to grant access')
+      }
     }
-  } catch (error) {
-    console.error('Grant access error:', error)
-    if (error.response?.data?.message) {
-      alert(error.response.data.message)
-    }
-  }
+  })
 }
 
 const resetPassword = async (row) => {
-  if (!confirm(`Reset password for ${row.student_name}?`)) return
-  try {
-    const res = await api.post(`/admin/students/${row.id}/reset-password`)
-    if (res.status === 200 && res.data?.data) {
-      credentials.value = {
-        student_name: res.data.data.student_name,
-        student_id: res.data.data.student_id,
-        username: res.data.data.username,
-        password: res.data.data.password,
+  $q.dialog({
+    title: 'Reset Password',
+    message: `Reset password for ${row.student_name}?`,
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    try {
+      const res = await api.post(`/admin/students/${row.id}/reset-password`)
+      if (res.status === 200 && res.data?.data) {
+        credentials.value = {
+          student_name: res.data.data.student_name,
+          student_id: res.data.data.student_id,
+          username: res.data.data.username,
+          password: res.data.data.password,
+        }
+        showCredentials.value = true
+        showSuccessNotification('Password reset successfully')
       }
-      showCredentials.value = true
+    } catch (error) {
+      console.error('Reset password error:', error)
+      if (error.response?.data?.message) {
+        showErrorNotification(error.response.data.message)
+      } else {
+        showErrorNotification('Failed to reset password')
+      }
     }
-  } catch (error) {
-    console.error('Reset password error:', error)
-    if (error.response?.data?.message) {
-      alert(error.response.data.message)
-    }
-  }
+  })
 }
 
 const copyToClipboard = async (text) => {
   try {
     await navigator.clipboard.writeText(text)
-    // You could show a toast notification here
+    showSuccessNotification('Copied to clipboard')
   } catch (err) {
     console.error('Failed to copy:', err)
     // Fallback for older browsers
@@ -621,12 +911,60 @@ const copyToClipboard = async (text) => {
     textArea.select()
     document.execCommand('copy')
     document.body.removeChild(textArea)
+    showSuccessNotification('Copied to clipboard')
   }
 }
 
 const copyAllCredentials = () => {
-  const loginUrl = `${window.location.origin}/admin`
+  const loginUrl = `${window.location.origin}/login`
   const text = `Student Login Credentials\n\nStudent: ${credentials.value.student_name}\nStudent ID: ${credentials.value.student_id}\nUsername: ${credentials.value.username}\nPassword: ${credentials.value.password}\n\nLogin using this link:\n${loginUrl}`
   copyToClipboard(text)
+  showSuccessNotification('All credentials copied to clipboard')
 }
 </script>
+
+<style scoped>
+.stat-card {
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  border-left: 4px solid transparent;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.stat-card-blue {
+  border-left-color: #1976d2;
+}
+
+.stat-card-green {
+  border-left-color: #21ba45;
+}
+
+.stat-card-orange {
+  border-left-color: #f2c037;
+}
+
+.stat-card-red {
+  border-left-color: #c10015;
+}
+
+.students-table :deep(.q-table__top) {
+  padding: 16px;
+}
+
+.students-table :deep(.q-table thead tr th) {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.students-table :deep(.q-table tbody tr:hover) {
+  background-color: #f9f9f9;
+}
+</style>

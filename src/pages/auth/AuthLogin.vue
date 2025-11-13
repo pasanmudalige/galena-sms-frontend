@@ -115,6 +115,45 @@
       </div>
     </div>
 
+    <!-- Blocked Student Dialog -->
+    <q-dialog v-model="showBlockedDialog" persistent>
+      <q-card class="rounded-xl" style="min-width: 400px; max-width: 500px">
+        <q-card-section class="row items-center q-pb-none">
+          <q-icon name="block" color="negative" size="32px" class="q-mr-sm" />
+          <div class="text-h6 text-weight-bold text-negative">Account Blocked</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section>
+          <div class="text-body1 q-mb-md">
+            You are blocked from accessing your account. Please contact the support center via WhatsApp for assistance.
+          </div>
+          <div class="bg-grey-2 rounded-borders q-pa-md q-mb-md">
+            <div class="text-body2 text-center text-grey-8">
+              <q-icon name="whatsapp" color="positive" size="20px" class="q-mr-xs" />
+              Contact Support: +94 71 53 685 53
+            </div>
+          </div>
+          <div class="text-body2 text-grey-7 q-mb-md">
+            <strong>Note:</strong> Please provide your Student ID when contacting support.
+          </div>
+          <div class="flex justify-center">
+            <q-btn
+              no-caps
+              unelevated
+              color="positive"
+              icon="whatsapp"
+              label="Contact Support via WhatsApp"
+              :href="whatsappSupportUrl"
+              target="_blank"
+              class="q-px-xl"
+            />
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
     <!-- Forgot Password Dialog -->
     <q-dialog v-model="showForgotPasswordDialog">
       <q-card style="min-width: 400px; max-width: 500px">
@@ -187,6 +226,13 @@ const whatsappUrl = computed(() => {
   return `https://wa.me/94715368553?text=${message}`
 })
 
+const whatsappSupportUrl = computed(() => {
+  const message = encodeURIComponent('Hello, my account has been blocked. Please help me. Student ID: {Student ID}')
+  return `https://wa.me/94715368553?text=${message}`
+})
+
+const showBlockedDialog = ref(false)
+
 const onSubmit = async () => {
   try {
     const response = await authStore.loginApi(form.value)
@@ -211,10 +257,13 @@ const onSubmit = async () => {
     }
   } catch (error) {
     console.error(error)
-    if (error.status === 400 || error.status === 403) {
+    if (error.response?.status === 403 || error.response?.data?.blocked) {
+      // Show blocked dialog for inactive students
+      showBlockedDialog.value = true
+    } else if (error.response?.status === 400 || error.response?.status === 403) {
       showErrorNotification(error.response.data.message)
     } else {
-      showErrorNotification('Internal Server Error')
+      showErrorNotification(error.response?.data?.message || 'Internal Server Error')
     }
   }
 }
