@@ -8,27 +8,9 @@
         </q-toolbar-title>
         <q-space />
         <div class="row q-gutter-sm gt-xs">
-          <q-btn
-            flat
-            no-caps
-            label="Home"
-            @click="scrollTo('hero')"
-            class="text-primary"
-          />
-          <q-btn
-            flat
-            no-caps
-            label="About"
-            @click="scrollTo('about')"
-            class="text-primary"
-          />
-          <q-btn
-            flat
-            no-caps
-            label="Courses"
-            @click="scrollTo('courses')"
-            class="text-primary"
-          />
+          <q-btn flat no-caps label="Home" @click="scrollTo('hero')" class="text-primary" />
+          <q-btn flat no-caps label="About" @click="scrollTo('about')" class="text-primary" />
+          <q-btn flat no-caps label="Courses" @click="scrollTo('courses')" class="text-primary" />
           <q-btn
             flat
             no-caps
@@ -36,27 +18,8 @@
             @click="scrollTo('facilities')"
             class="text-primary"
           />
-          <q-btn
-            flat
-            no-caps
-            label="Gallery"
-            @click="scrollTo('gallery')"
-            class="text-primary"
-          />
-          <q-btn
-            flat
-            no-caps
-            label="Admission"
-            @click="scrollTo('admission')"
-            class="text-primary"
-          />
-          <q-btn
-            flat
-            no-caps
-            label="Contact"
-            @click="scrollTo('contact')"
-            class="text-primary"
-          />
+          <q-btn flat no-caps label="Gallery" @click="scrollTo('gallery')" class="text-primary" />
+          <q-btn flat no-caps label="Contact" @click="scrollTo('contact')" class="text-primary" />
         </div>
         <q-btn
           no-caps
@@ -67,49 +30,53 @@
           class="q-ml-md"
         />
         <q-btn
-          flat
-          dense
-          round
-          icon="menu"
-          @click="drawer = !drawer"
-          class="lt-sm"
+          no-caps
+          outline
+          target="_blank"
+          color="primary"
+          label="Create Student Account"
+          to="/student-register"
+          class="q-ml-sm"
         />
+        <q-btn flat dense round icon="menu" @click="drawer = !drawer" class="lt-sm" />
       </q-toolbar>
     </q-header>
 
     <!-- Mobile Drawer -->
     <q-drawer v-model="drawer" side="right" overlay bordered>
       <q-list>
-        <q-item clickable @click="scrollTo('hero'); drawer = false">
+        <q-item clickable @click="scrollToAndClose('hero')">
           <q-item-section>Home</q-item-section>
         </q-item>
-        <q-item clickable @click="scrollTo('about'); drawer = false">
+        <q-item clickable @click="scrollToAndClose('about')">
           <q-item-section>About</q-item-section>
         </q-item>
-        <q-item clickable @click="scrollTo('courses'); drawer = false">
+        <q-item clickable @click="scrollToAndClose('courses')">
           <q-item-section>Courses</q-item-section>
         </q-item>
-        <q-item clickable @click="scrollTo('facilities'); drawer = false">
+        <q-item clickable @click="scrollToAndClose('facilities')">
           <q-item-section>Facilities</q-item-section>
         </q-item>
-        <q-item clickable @click="scrollTo('gallery'); drawer = false">
+        <q-item clickable @click="scrollToAndClose('gallery')">
           <q-item-section>Gallery</q-item-section>
         </q-item>
-        <q-item clickable @click="scrollTo('admission'); drawer = false">
-          <q-item-section>Admission</q-item-section>
-        </q-item>
-        <q-item clickable @click="scrollTo('contact'); drawer = false">
+        <q-item clickable @click="scrollToAndClose('contact')">
           <q-item-section>Contact</q-item-section>
         </q-item>
         <q-separator />
         <q-item clickable to="/login" @click="drawer = false">
           <q-item-section>
+            <q-btn no-caps unelevated color="primary" label="Student Login" class="full-width" />
+          </q-item-section>
+        </q-item>
+        <q-item clickable to="/student-register" @click="drawer = false">
+          <q-item-section>
             <q-btn
               no-caps
-              unelevated
+              outline
               color="primary"
-              label="Student Login"
-              class="full-width"
+              label="Create Student Account"
+              class="full-width q-mt-sm"
             />
           </q-item-section>
         </q-item>
@@ -122,8 +89,8 @@
         <h1 class="hero-title">Galena Educational Institute</h1>
         <p class="hero-tagline">Empowering Minds, Shaping Futures</p>
         <p class="hero-description">
-          Excellence in education since 1990. We are committed to providing
-          quality education that prepares students for success in an ever-changing world.
+          Excellence in education since 2019. We are committed to providing quality education that
+          prepares students for success in an ever-changing world.
         </p>
         <q-btn
           no-caps
@@ -148,9 +115,8 @@
                 <q-icon name="flag" size="48px" color="primary" class="q-mb-md" />
                 <h3 class="text-h5 q-mb-md">Our Mission</h3>
                 <p class="text-body1">
-                  To provide exceptional educational experiences that foster intellectual
-                  growth, character development, and prepare students to become responsible
-                  global citizens.
+                  To provide exceptional educational experiences that foster intellectual growth,
+                  character development, and prepare students to become responsible global citizens.
                 </p>
               </q-card-section>
             </q-card>
@@ -162,8 +128,8 @@
                 <h3 class="text-h5 q-mb-md">Our Vision</h3>
                 <p class="text-body1">
                   To be a leading educational institution recognized for academic excellence,
-                  innovation, and commitment to nurturing well-rounded individuals who
-                  contribute positively to society.
+                  innovation, and commitment to nurturing well-rounded individuals who contribute
+                  positively to society.
                 </p>
               </q-card-section>
             </q-card>
@@ -174,8 +140,8 @@
                 <q-icon name="favorite" size="48px" color="primary" class="q-mb-md" />
                 <h3 class="text-h5 q-mb-md">Our Values</h3>
                 <p class="text-body1">
-                  Integrity, Excellence, Respect, Innovation, and Community. These core
-                  values guide everything we do and shape the character of our students.
+                  Integrity, Excellence, Respect, Innovation, and Community. These core values guide
+                  everything we do and shape the character of our students.
                 </p>
               </q-card-section>
             </q-card>
@@ -196,7 +162,12 @@
                 <q-icon :name="course.icon" size="40px" color="primary" class="q-mb-md" />
                 <h3 class="text-h6 q-mb-sm">{{ course.name }}</h3>
                 <p class="text-body2 text-grey-7">{{ course.description }}</p>
-                <q-chip :label="course.duration" color="primary" text-color="white" class="q-mt-md" />
+                <q-chip
+                  :label="course.duration"
+                  color="primary"
+                  text-color="white"
+                  class="q-mt-md"
+                />
               </q-card-section>
             </q-card>
           </div>
@@ -253,59 +224,6 @@
       </div>
     </section>
 
-    <!-- Admission Section -->
-    <section id="admission" class="section-container bg-white">
-      <div class="container">
-        <h2 class="section-title">Admission Process</h2>
-        <p class="section-subtitle">Join our community of learners</p>
-        <div class="row q-col-gutter-lg">
-          <div class="col-12 col-md-6">
-            <q-card class="admission-card">
-              <q-card-section>
-                <h3 class="text-h5 q-mb-md">How to Enroll</h3>
-                <q-timeline color="primary" class="q-mt-md">
-                  <q-timeline-entry
-                    v-for="(step, index) in admissionSteps"
-                    :key="index"
-                    :title="step.title"
-                    :subtitle="step.subtitle"
-                    :icon="step.icon"
-                  >
-                    <div class="text-body2">{{ step.description }}</div>
-                  </q-timeline-entry>
-                </q-timeline>
-              </q-card-section>
-            </q-card>
-          </div>
-          <div class="col-12 col-md-6">
-            <q-card class="admission-card">
-              <q-card-section>
-                <h3 class="text-h5 q-mb-md">Requirements</h3>
-                <q-list>
-                  <q-item v-for="(req, index) in requirements" :key="index">
-                    <q-item-section avatar>
-                      <q-icon name="check_circle" color="primary" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>{{ req }}</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-                <q-btn
-                  no-caps
-                  unelevated
-                  color="primary"
-                  label="Apply Now"
-                  class="q-mt-lg full-width"
-                  @click="scrollTo('contact')"
-                />
-              </q-card-section>
-            </q-card>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- Contact Us Section -->
     <section id="contact" class="section-container bg-grey-1">
       <div class="container">
@@ -319,22 +237,39 @@
                 <div class="q-mb-md">
                   <div class="row items-center q-mb-sm">
                     <q-icon name="location_on" color="primary" size="24px" class="q-mr-sm" />
-                    <span class="text-body1">123 Education Street, Learning City, LC 12345</span>
+                    <span class="text-body1">301 Morris Rd, Galle 80000</span>
                   </div>
                   <div class="row items-center q-mb-sm">
                     <q-icon name="phone" color="primary" size="24px" class="q-mr-sm" />
-                    <span class="text-body1">+1 (555) 123-4567</span>
+                    <span class="text-body1">+94 71 53 68 553</span>
                   </div>
                   <div class="row items-center q-mb-sm">
                     <q-icon name="email" color="primary" size="24px" class="q-mr-sm" />
-                    <span class="text-body1">info@galena.edu</span>
+                    <span class="text-body1">edu.galenainstitute@gmail.com</span>
                   </div>
                 </div>
                 <div class="row q-gutter-sm">
-                  <q-btn round color="primary" icon="facebook" />
-                  <q-btn round color="primary" icon="twitter" />
-                  <q-btn round color="primary" icon="instagram" />
-                  <q-btn round color="primary" icon="linkedin" />
+                  <q-btn
+                    round
+                    color="primary"
+                    icon="facebook"
+                    href="https://www.facebook.com/institutegalena/"
+                    target="_blank"
+                  />
+                  <q-btn
+                    round
+                    color="primary"
+                    icon="whatsapp"
+                    :href="`https://wa.me/94715368553`"
+                    target="_blank"
+                  />
+                  <q-btn
+                    round
+                    color="primary"
+                    icon="instagram"
+                    href="https://www.instagram.com/galenainstitute/"
+                    target="_blank"
+                  />
                 </div>
               </q-card-section>
             </q-card>
@@ -348,27 +283,26 @@
                     v-model="contactForm.name"
                     outlined
                     label="Your Name *"
-                    :rules="[val => !!val || 'Name is required']"
+                    :rules="[(val) => !!val || 'Name is required']"
                   />
                   <q-input
                     v-model="contactForm.email"
                     outlined
                     type="email"
                     label="Your Email *"
-                    :rules="[val => !!val || 'Email is required', val => /.+@.+\..+/.test(val) || 'Invalid email']"
+                    :rules="[
+                      (val) => !!val || 'Email is required',
+                      (val) => /.+@.+\..+/.test(val) || 'Invalid email',
+                    ]"
                   />
-                  <q-input
-                    v-model="contactForm.phone"
-                    outlined
-                    label="Phone Number"
-                  />
+                  <q-input v-model="contactForm.phone" outlined label="Phone Number" />
                   <q-input
                     v-model="contactForm.message"
                     outlined
                     type="textarea"
                     label="Message *"
                     rows="5"
-                    :rules="[val => !!val || 'Message is required']"
+                    :rules="[(val) => !!val || 'Message is required']"
                   />
                   <q-btn
                     type="submit"
@@ -405,9 +339,6 @@
               </q-item>
               <q-item clickable @click="scrollTo('courses')">
                 <q-item-section>Courses</q-item-section>
-              </q-item>
-              <q-item clickable @click="scrollTo('admission')">
-                <q-item-section>Admission</q-item-section>
               </q-item>
               <q-item clickable @click="scrollTo('contact')">
                 <q-item-section>Contact</q-item-section>
@@ -457,7 +388,8 @@ const courses = ref([
   {
     id: 1,
     name: 'Computer Science',
-    description: 'Comprehensive program covering programming, algorithms, and software engineering.',
+    description:
+      'Comprehensive program covering programming, algorithms, and software engineering.',
     duration: '4 Years',
     icon: 'computer',
   },
@@ -558,47 +490,16 @@ const gallery = ref([
   },
 ])
 
-const admissionSteps = ref([
-  {
-    title: 'Application',
-    subtitle: 'Step 1',
-    icon: 'description',
-    description: 'Submit your application form online or in person with required documents.',
-  },
-  {
-    title: 'Review',
-    subtitle: 'Step 2',
-    icon: 'search',
-    description: 'Our admissions team reviews your application and documents.',
-  },
-  {
-    title: 'Interview',
-    subtitle: 'Step 3',
-    icon: 'record_voice_over',
-    description: 'Attend an interview (if required) to discuss your goals and aspirations.',
-  },
-  {
-    title: 'Acceptance',
-    subtitle: 'Step 4',
-    icon: 'check_circle',
-    description: 'Receive your acceptance letter and complete enrollment procedures.',
-  },
-])
-
-const requirements = ref([
-  'Completed application form',
-  'High school transcripts',
-  'Letters of recommendation',
-  'Personal statement',
-  'Standardized test scores',
-  'Application fee',
-])
-
 const scrollTo = (sectionId) => {
   const element = document.getElementById(sectionId)
   if (element) {
     element.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
+}
+
+const scrollToAndClose = (sectionId) => {
+  scrollTo(sectionId)
+  drawer.value = false
 }
 
 const onContactSubmit = () => {
@@ -694,17 +595,17 @@ onMounted(() => {
 .about-card,
 .course-card,
 .facility-card,
-.gallery-card,
-.admission-card {
+.gallery-card {
   height: 100%;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .about-card:hover,
 .course-card:hover,
 .facility-card:hover,
-.gallery-card:hover,
-.admission-card:hover {
+.gallery-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
 }

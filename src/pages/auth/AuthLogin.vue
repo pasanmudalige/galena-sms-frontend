@@ -99,11 +99,12 @@
         <div class="text-center">
           <p class="text-sm text-gray-600">
             Don't have an account?
-            <span
-              class="text-primary hover:text-purple-600 cursor-pointer font-medium transition-colors"
+            <router-link
+              to="/student-register"
+              class="text-primary hover:text-purple-600 cursor-pointer font-medium transition-colors no-underline"
             >
               Sign up
-            </span>
+            </router-link>
           </p>
         </div>
       </div>
@@ -113,11 +114,48 @@
         Copyright © 2025 - Werzuo IT Solutions (PVT) Ltd. All Rights Reserved.
       </div>
     </div>
+
+    <!-- Forgot Password Dialog -->
+    <q-dialog v-model="showForgotPasswordDialog">
+      <q-card style="min-width: 400px; max-width: 500px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Reset Password</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section>
+          <div class="text-body1 q-mb-md">
+            To reset your password, please send a WhatsApp message to our support team with the following format:
+          </div>
+          <div class="bg-grey-2 rounded-borders q-pa-md q-mb-md">
+            <div class="text-body2 font-mono text-center">
+              Please reset my password {Student ID}
+            </div>
+          </div>
+          <div class="text-body2 text-grey-7 q-mb-md">
+            <strong>Note:</strong> Replace {Student ID} with your actual Student ID.
+          </div>
+          <div class="flex justify-center">
+            <q-btn
+              no-caps
+              unelevated
+              color="positive"
+              icon="whatsapp"
+              label="Send to +94 71 53 685 53"
+              :href="whatsappUrl"
+              target="_blank"
+              class="q-px-xl"
+            />
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { showSuccessNotification, showErrorNotification } from 'src/utils/notification'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth-store'
@@ -138,10 +176,16 @@ const form = ref({
 })
 
 const showNewPassword = ref(false)
+const showForgotPasswordDialog = ref(false)
 
 const toggleNewPassword = () => {
   showNewPassword.value = !showNewPassword.value
 }
+
+const whatsappUrl = computed(() => {
+  const message = encodeURIComponent('Please reset my password {Student ID}')
+  return `https://wa.me/94715368553?text=${message}`
+})
 
 const onSubmit = async () => {
   try {
@@ -176,7 +220,7 @@ const onSubmit = async () => {
 }
 
 const navigateToForgotPassword = () => {
-  router.push('/forgot-password')
+  showForgotPasswordDialog.value = true
 }
 </script>
 
