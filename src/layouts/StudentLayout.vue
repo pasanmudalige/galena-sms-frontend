@@ -4,7 +4,7 @@
       <q-toolbar>
         <q-btn flat @click="drawer = !drawer" round dense icon="menu" class="q-mr-sm" />
         <q-toolbar-title>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 cursor-pointer" @click="navigateToDashboard">
             <img src="~assets/galena.png" alt="Logo" style="height: 40px" />
             <span class="text-lg font-semibold">Student Portal</span>
           </div>
@@ -20,13 +20,12 @@
     <q-drawer v-model="drawer" show-if-above bordered class="bg-grey-1">
       <q-scroll-area class="fit">
         <q-list>
-          <q-item class="py-6 justify-center">
+          <q-item class="py-6 justify-center cursor-pointer" @click="navigateToDashboard">
             <q-item-section class="items-center">
               <img alt="Galena logo" src="~assets/galena.png" width="180" />
             </q-item-section>
           </q-item>
 
-          <q-item-label header class="text-grey-8">Menu</q-item-label>
           <q-item
             v-for="item in menuItems"
             :key="item.id"
@@ -35,6 +34,7 @@
             :to="item.route"
             :active="$route.path === item.route"
             active-class="bg-primary text-white"
+            :class="{ 'menu-item-dim': item.isUnderDevelopment }"
           >
             <q-item-section avatar>
               <q-icon :name="item.icon" />
@@ -55,6 +55,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth-store'
 import { showSuccessNotification } from 'src/utils/notification'
 
@@ -62,18 +63,24 @@ defineOptions({
   name: 'StudentLayout',
 })
 
+const router = useRouter()
 const authStore = useAuthStore()
 const drawer = ref(true)
 const authUser = ref(null)
 
 const menuItems = ref([
-  { id: 'dashboard', title: 'Dashboard', icon: 'home', route: '/student/dashboard' },
-  { id: 'classes', title: 'My Classes', icon: 'school', route: '/student/classes' },
-  { id: 'attendance', title: 'My Attendance', icon: 'how_to_reg', route: '/student/attendance' },
-  { id: 'documents', title: 'My Documents', icon: 'description', route: '/student/documents' },
-  { id: 'payments', title: 'My Payments', icon: 'payments', route: '/student/payments' },
-  { id: 'profile', title: 'My Profile', icon: 'person', route: '/student/profile' },
+  { id: 'dashboard', title: 'Dashboard', icon: 'home', route: '/student/dashboard', isUnderDevelopment: false },
+  { id: 'classes', title: 'My Classes', icon: 'school', route: '/student/classes', isUnderDevelopment: false },
+  { id: 'documents', title: 'My Documents', icon: 'folder', route: '/student/documents', isUnderDevelopment: false },
+  { id: 'attendance', title: 'My Attendance', icon: 'event_available', route: '/student/attendance', isUnderDevelopment: true },
+  { id: 'payments', title: 'My Payments', icon: 'payments', route: '/student/payments', isUnderDevelopment: true },
+  { id: 'profile', title: 'My Profile', icon: 'person', route: '/student/profile', isUnderDevelopment: false },
 ])
+
+const navigateToDashboard = () => {
+  router.push('/student/dashboard')
+  drawer.value = false
+}
 
 const handleLogout = async () => {
   await authStore.logoutApi()
@@ -96,3 +103,30 @@ onMounted(() => {
 })
 </script>
 
+<style scoped>
+.cursor-pointer {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.cursor-pointer:hover {
+  opacity: 0.8;
+}
+
+.menu-item-dim {
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.menu-item-dim:hover {
+  opacity: 0.7;
+}
+
+.menu-item-dim :deep(.q-item__section) {
+  opacity: 0.5;
+}
+
+.menu-item-dim:hover :deep(.q-item__section) {
+  opacity: 0.7;
+}
+</style>

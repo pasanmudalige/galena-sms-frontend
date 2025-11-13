@@ -1,99 +1,308 @@
 <template>
-  <q-page class="p-6">
-    <div class="text-xl font-semibold mb-4">My Documents</div>
-
-    <div v-if="loading" class="flex justify-center items-center py-8">
-      <q-spinner color="primary" size="3em" />
-    </div>
-
-    <div v-else-if="rows.length === 0" class="text-center py-8 text-grey-6">
-      No documents available
-    </div>
-
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <q-card
-        v-for="doc in rows"
-        :key="doc.id"
-        class="cursor-pointer hover:shadow-lg transition-shadow"
-        @click="viewDocument(doc)"
-      >
-        <q-card-section>
-          <div class="flex items-center justify-between mb-2">
-            <div class="text-lg font-semibold">{{ doc.document_name }}</div>
-            <q-badge :color="doc.file_type === 'pdf' ? 'red' : 'blue'" :label="doc.file_type.toUpperCase()" />
-          </div>
-          <div class="text-sm text-grey-6 mb-2">
-            <div>Views: {{ doc.view_count }} / {{ doc.views_per_student }}</div>
-            <div>Remaining: {{ doc.views_remaining }}</div>
-            <div>Expires: {{ new Date(doc.expires_at).toLocaleDateString() }}</div>
-          </div>
-          <div class="flex flex-wrap gap-1 mt-2">
-            <q-badge
-              v-for="cls in doc.classes"
-              :key="cls.id"
-              color="primary"
-              :label="cls.class_name"
-              class="text-xs"
-            />
-          </div>
-        </q-card-section>
-        <q-card-actions>
+  <q-page class="q-pa-md">
+    <div class="q-pa-md">
+      <!-- Page Header -->
+      <div class="row items-center q-mb-lg">
+        <div class="col">
+          <div class="text-h4 text-weight-bold text-grey-8">My Documents</div>
+          <div class="text-subtitle2 text-grey-6">View and manage your uploaded documents</div>
+        </div>
+        <div class="col-auto">
           <q-btn
-            flat
-            no-caps
             color="primary"
-            :label="doc.views_remaining > 0 ? 'View Document' : 'View Limit Reached'"
-            :disable="doc.views_remaining === 0"
-            @click.stop="viewDocument(doc)"
+            icon="refresh"
+            label="Refresh"
+            flat
+            @click="loadDocuments"
+            :loading="loading"
           />
-        </q-card-actions>
-      </q-card>
-    </div>
+        </div>
+      </div>
 
-    <!-- Document Viewer Dialog -->
-    <q-dialog v-model="showViewer" maximized @hide="closeViewer">
-      <q-card class="bg-grey-1">
-        <q-card-section class="row items-center q-pb-none bg-white">
-          <div class="text-h6">{{ currentDocument?.document_name }}</div>
-          <q-space />
-          <q-btn icon="close" flat round dense @click="closeViewer" />
-        </q-card-section>
-        <q-separator />
-        <q-card-section class="q-pa-none" style="height: calc(100vh - 60px)">
-          <div
-            v-if="viewerLoading"
-            class="flex justify-center items-center"
-            style="height: 100%"
-          >
-            <q-spinner color="primary" size="3em" />
-          </div>
-          <div
-            v-else
-            id="document-viewer"
-            class="full-width full-height"
-            style="position: relative; overflow: hidden"
-          >
-            <!-- PDF Viewer with Canvas Watermark -->
-            <div v-if="currentDocument?.file_type === 'pdf'" style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: auto">
-              <div v-if="pdfLoading" class="flex justify-center items-center" style="height: 100%">
-                <q-spinner color="primary" size="3em" />
+      <!-- Summary Cards -->
+      <div class="row q-col-gutter-md q-mb-md" v-if="!loading && rows.length > 0">
+        <div class="col-12 col-sm-6 col-md-3">
+          <q-card flat bordered class="stat-card stat-card-blue">
+            <q-card-section class="q-pa-md">
+              <div class="row items-center">
+                <div class="col">
+                  <div class="text-overline text-grey-7">Total Documents</div>
+                  <div class="text-h4 text-weight-bold text-primary q-mt-xs">
+                    {{ rows.length }}
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <q-avatar size="56px" color="blue-1" text-color="primary">
+                    <q-icon name="folder" size="32px" />
+                  </q-avatar>
+                </div>
               </div>
-              <div v-else id="pdf-container" ref="pdfContainer" style="width: 100%; height: 100%; overflow: auto; text-align: center; padding: 20px">
-                <!-- PDF pages will be rendered here -->
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+          <q-card flat bordered class="stat-card stat-card-green">
+            <q-card-section class="q-pa-md">
+              <div class="row items-center">
+                <div class="col">
+                  <div class="text-overline text-grey-7">Available Views</div>
+                  <div class="text-h4 text-weight-bold text-positive q-mt-xs">
+                    {{ totalAvailableViews }}
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <q-avatar size="56px" color="green-1" text-color="positive">
+                    <q-icon name="visibility" size="32px" />
+                  </q-avatar>
+                </div>
               </div>
-            </div>
-            <!-- Image Viewer with Canvas Watermark -->
-            <div v-else style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: auto">
-              <canvas
-                ref="imageCanvas"
-                style="max-width: 100%; max-height: 100%; object-fit: contain"
-              />
-              <!-- Watermark is now drawn directly on canvas, no need for CSS overlay -->
-            </div>
-          </div>
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+          <q-card flat bordered class="stat-card stat-card-orange">
+            <q-card-section class="q-pa-md">
+              <div class="row items-center">
+                <div class="col">
+                  <div class="text-overline text-grey-7">PDF Documents</div>
+                  <div class="text-h4 text-weight-bold text-warning q-mt-xs">
+                    {{ pdfCount }}
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <q-avatar size="56px" color="orange-1" text-color="warning">
+                    <q-icon name="picture_as_pdf" size="32px" />
+                  </q-avatar>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+          <q-card flat bordered class="stat-card stat-card-purple">
+            <q-card-section class="q-pa-md">
+              <div class="row items-center">
+                <div class="col">
+                  <div class="text-overline text-grey-7">Image Documents</div>
+                  <div class="text-h4 text-weight-bold text-purple q-mt-xs">
+                    {{ imageCount }}
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <q-avatar size="56px" color="purple-1" text-color="purple">
+                    <q-icon name="image" size="32px" />
+                  </q-avatar>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="loading" class="flex flex-center" style="min-height: 400px">
+        <q-spinner color="primary" size="3em" />
+      </div>
+
+      <!-- Empty State -->
+      <q-card v-else-if="rows.length === 0" flat bordered>
+        <q-card-section class="q-pa-xl text-center">
+          <q-icon name="folder_open" size="64px" color="grey-4" class="q-mb-md" />
+          <div class="text-h6 text-grey-7 q-mb-sm">No Documents Available</div>
+          <div class="text-body2 text-grey-6">You don't have any documents uploaded yet.</div>
         </q-card-section>
       </q-card>
-    </q-dialog>
+
+      <!-- Documents Grid -->
+      <div v-else class="row q-col-gutter-md">
+        <div v-for="doc in rows" :key="doc.id" class="col-12 col-sm-6 col-md-4 col-lg-3">
+          <q-card
+            flat
+            bordered
+            class="document-card cursor-pointer"
+            :class="{ 'document-disabled': doc.views_remaining === 0 }"
+            @click="viewDocument(doc)"
+          >
+            <q-card-section class="q-pa-md">
+              <!-- Document Type Icon -->
+              <div class="row items-center q-mb-sm">
+                <q-avatar
+                  :color="doc.file_type === 'pdf' ? 'red-1' : 'blue-1'"
+                  :text-color="doc.file_type === 'pdf' ? 'red' : 'blue'"
+                  size="48px"
+                  class="q-mr-sm"
+                >
+                  <q-icon
+                    :name="doc.file_type === 'pdf' ? 'picture_as_pdf' : 'image'"
+                    size="28px"
+                  />
+                </q-avatar>
+                <div class="col">
+                  <q-badge
+                    :color="doc.file_type === 'pdf' ? 'red' : 'blue'"
+                    :label="doc.file_type.toUpperCase()"
+                    class="q-mb-xs"
+                  />
+                  <div
+                    v-if="doc.views_remaining === 0"
+                    class="text-caption text-negative text-weight-bold"
+                  >
+                    View Limit Reached
+                  </div>
+                </div>
+              </div>
+
+              <!-- Document Name -->
+              <div class="text-weight-medium text-grey-9 q-mb-md" style="min-height: 40px">
+                {{ doc.document_name }}
+              </div>
+
+              <!-- Document Info -->
+              <div class="q-gutter-xs q-mb-md">
+                <div class="row items-center text-caption text-grey-7">
+                  <q-icon name="visibility" size="14px" class="q-mr-xs" />
+                  <span>Views: {{ doc.view_count }} / {{ doc.views_per_student }}</span>
+                </div>
+                <div class="row items-center text-caption text-grey-7">
+                  <q-icon name="schedule" size="14px" class="q-mr-xs" />
+                  <span>Remaining: {{ doc.views_remaining }}</span>
+                </div>
+                <div class="row items-center text-caption text-grey-7">
+                  <q-icon name="event" size="14px" class="q-mr-xs" />
+                  <span>Expires: {{ formatDate(doc.expires_at) }}</span>
+                </div>
+              </div>
+
+              <!-- Classes Tags -->
+              <div v-if="doc.classes && doc.classes.length > 0" class="q-mb-md">
+                <div class="text-caption text-grey-7 q-mb-xs">Associated Classes:</div>
+                <div class="q-gutter-xs">
+                  <q-chip
+                    v-for="cls in doc.classes.slice(0, 2)"
+                    :key="cls.id"
+                    size="sm"
+                    color="primary"
+                    text-color="white"
+                    dense
+                  >
+                    {{ cls.class_name }}
+                  </q-chip>
+                  <q-chip
+                    v-if="doc.classes.length > 2"
+                    size="sm"
+                    color="grey-5"
+                    text-color="white"
+                    dense
+                  >
+                    +{{ doc.classes.length - 2 }} more
+                  </q-chip>
+                </div>
+              </div>
+            </q-card-section>
+
+            <q-separator />
+
+            <q-card-actions class="q-pa-md">
+              <q-btn
+                flat
+                no-caps
+                :color="doc.views_remaining > 0 ? 'primary' : 'grey'"
+                :icon="doc.views_remaining > 0 ? 'visibility' : 'block'"
+                :label="doc.views_remaining > 0 ? 'View Document' : 'Limit Reached'"
+                :disable="doc.views_remaining === 0"
+                class="full-width"
+                @click.stop="viewDocument(doc)"
+              />
+            </q-card-actions>
+          </q-card>
+        </div>
+      </div>
+
+      <!-- Document Viewer Dialog -->
+      <q-dialog v-model="showViewer" maximized @hide="closeViewer">
+        <q-card class="bg-grey-1">
+          <q-card-section class="row items-center q-pb-none bg-white">
+            <div class="col">
+              <div class="text-h6 text-weight-bold">{{ currentDocument?.document_name }}</div>
+              <div class="text-caption text-grey-6">
+                {{ currentDocument?.file_type?.toUpperCase() }} Document
+              </div>
+            </div>
+            <q-space />
+            <q-btn icon="close" flat round dense @click="closeViewer" />
+          </q-card-section>
+          <q-separator />
+          <q-card-section class="q-pa-none" style="height: calc(100vh - 60px)">
+            <div v-if="viewerLoading" class="flex justify-center items-center" style="height: 100%">
+              <q-spinner color="primary" size="3em" />
+            </div>
+            <div
+              v-else
+              id="document-viewer"
+              class="full-width full-height"
+              style="position: relative; overflow: hidden"
+            >
+              <!-- PDF Viewer with Canvas Watermark -->
+              <div
+                v-if="currentDocument?.file_type === 'pdf'"
+                style="
+                  position: relative;
+                  width: 100%;
+                  height: 100%;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  overflow: auto;
+                "
+              >
+                <div
+                  v-if="pdfLoading"
+                  class="flex justify-center items-center"
+                  style="height: 100%"
+                >
+                  <q-spinner color="primary" size="3em" />
+                </div>
+                <div
+                  v-else
+                  id="pdf-container"
+                  ref="pdfContainer"
+                  style="
+                    width: 100%;
+                    height: 100%;
+                    overflow: auto;
+                    text-align: center;
+                    padding: 20px;
+                  "
+                >
+                  <!-- PDF pages will be rendered here -->
+                </div>
+              </div>
+              <!-- Image Viewer with Canvas Watermark -->
+              <div
+                v-else
+                style="
+                  position: relative;
+                  width: 100%;
+                  height: 100%;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  overflow: auto;
+                "
+              >
+                <canvas
+                  ref="imageCanvas"
+                  style="max-width: 100%; max-height: 100%; object-fit: contain"
+                />
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
+    </div>
   </q-page>
 </template>
 
@@ -122,6 +331,19 @@ const pdfPages = ref([])
 const pdfCanvases = ref([])
 const pdfContainer = ref(null)
 
+// Computed properties for summary cards
+const totalAvailableViews = computed(() => {
+  return rows.value.reduce((sum, doc) => sum + (doc.views_remaining || 0), 0)
+})
+
+const pdfCount = computed(() => {
+  return rows.value.filter((doc) => doc.file_type === 'pdf').length
+})
+
+const imageCount = computed(() => {
+  return rows.value.filter((doc) => doc.file_type === 'image').length
+})
+
 // Computed watermark text
 const watermarkText = computed(() => {
   if (!studentData.value) return ''
@@ -129,6 +351,21 @@ const watermarkText = computed(() => {
   const email = studentData.value.email || studentData.value.student_id
   return `Confidential – viewed by ${email} on ${date}`
 })
+
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A'
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  } catch (e) {
+    console.log(e)
+    return dateString
+  }
+}
 
 const loadStudentData = async () => {
   try {
@@ -230,19 +467,19 @@ const renderPdfWithWatermark = async (pdfUrl) => {
     // Load the PDF document
     const loadingTask = pdfjsLib.getDocument({ url: pdfUrl })
     const pdf = await loadingTask.promise
-    
+
     pdfPages.value = []
     pdfCanvases.value = []
-    
+
     // Render each page
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       const page = await pdf.getPage(pageNum)
       const viewport = page.getViewport({ scale: 1.5 })
-      
+
       // Create canvas element
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')
-      
+
       canvas.height = viewport.height
       canvas.width = viewport.width
       // Set responsive styles
@@ -252,52 +489,52 @@ const renderPdfWithWatermark = async (pdfUrl) => {
       canvas.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
       canvas.style.display = 'block'
       canvas.style.margin = '0 auto 20px auto'
-      
+
       // Render PDF page to canvas
       const renderContext = {
         canvasContext: ctx,
-        viewport: viewport
+        viewport: viewport,
       }
-      
+
       await page.render(renderContext).promise
-      
+
       // Add watermark to the rendered page
       const text = watermarkText.value
       const fontSize = Math.max(20, Math.min(viewport.width / 25, 32))
       ctx.font = `bold ${fontSize}px monospace`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      
+
       ctx.save()
       ctx.globalAlpha = 0.5
       ctx.fillStyle = '#000000'
       ctx.strokeStyle = '#ffffff'
       ctx.lineWidth = 3
-      
+
       // Position at center of page
       ctx.translate(viewport.width / 2, viewport.height / 2)
       ctx.rotate(-Math.PI / 4) // 45 degree rotation
-      
+
       ctx.strokeText(text, 0, 0)
       ctx.fillText(text, 0, 0)
       ctx.restore()
-      
+
       // Store canvas reference
-      pdfPages.value.push({ 
-        pageNum, 
+      pdfPages.value.push({
+        pageNum,
         canvas,
         width: viewport.width,
-        height: viewport.height
+        height: viewport.height,
       })
     }
-    
+
     // Wait for Vue to update and container to be available
     await nextTick()
-    
+
     // Wait for container to be rendered in DOM
     let attempts = 0
     while (!pdfContainer.value && attempts < 20) {
-      await new Promise(resolve => setTimeout(resolve, 50))
+      await new Promise((resolve) => setTimeout(resolve, 50))
       await nextTick()
       // Also try to find it directly in DOM
       if (!pdfContainer.value) {
@@ -309,7 +546,7 @@ const renderPdfWithWatermark = async (pdfUrl) => {
       }
       attempts++
     }
-    
+
     // Append canvases to container
     if (pdfContainer.value) {
       pdfContainer.value.innerHTML = '' // Clear container
@@ -343,9 +580,9 @@ const addWatermarkToImage = async (imageUrl) => {
       reject(new Error('Canvas not available'))
       return
     }
-    
+
     const img = new Image()
-    
+
     img.onload = () => {
       try {
         // Verify image loaded correctly
@@ -354,107 +591,97 @@ const addWatermarkToImage = async (imageUrl) => {
             width: img.width,
             height: img.height,
             naturalWidth: img.naturalWidth,
-            naturalHeight: img.naturalHeight
+            naturalHeight: img.naturalHeight,
           })
           reject(new Error('Image has invalid dimensions'))
           return
         }
-        
+
         console.log('Image loaded successfully:', {
           width: img.width,
           height: img.height,
           naturalWidth: img.naturalWidth,
-          naturalHeight: img.naturalHeight
+          naturalHeight: img.naturalHeight,
         })
-        
+
         const canvas = imageCanvas.value
         if (!canvas) {
           reject(new Error('Canvas element not found'))
           return
         }
-        
+
         const ctx = canvas.getContext('2d')
         if (!ctx) {
           reject(new Error('Could not get canvas context'))
           return
         }
-        
+
         // Calculate canvas size to fit within viewer while maintaining aspect ratio
         const maxWidth = window.innerWidth * 0.9
         const maxHeight = window.innerHeight * 0.8
         let canvasWidth = img.naturalWidth || img.width
         let canvasHeight = img.naturalHeight || img.height
-        
+
         if (canvasWidth > maxWidth || canvasHeight > maxHeight) {
           const scale = Math.min(maxWidth / canvasWidth, maxHeight / canvasHeight)
           canvasWidth = canvasWidth * scale
           canvasHeight = canvasHeight * scale
         }
-        
+
         // Set canvas dimensions (this clears the canvas)
         canvas.width = canvasWidth
         canvas.height = canvasHeight
         canvas.style.width = canvasWidth + 'px'
         canvas.style.height = canvasHeight + 'px'
-        
+
         // Draw the original image first - this is critical!
-        // The image should be fully loaded since we're in onload handler
         ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight)
-        
+
         console.log('Image drawn to canvas:', {
           canvasWidth,
           canvasHeight,
           imageWidth: img.naturalWidth || img.width,
-          imageHeight: img.naturalHeight || img.height
+          imageHeight: img.naturalHeight || img.height,
         })
-        
-        // Verify image was drawn by checking pixel data
-        const testPixel = ctx.getImageData(Math.floor(canvasWidth / 2), Math.floor(canvasHeight / 2), 1, 1)
-        console.log('Canvas pixel data at center:', {
-          r: testPixel.data[0],
-          g: testPixel.data[1],
-          b: testPixel.data[2],
-          a: testPixel.data[3]
-        })
-        
+
         // Now add a single watermark text on top of the image
         const text = watermarkText.value
         const fontSize = Math.max(20, Math.min(canvasWidth / 25, 32)) // Responsive font size with limits
         ctx.font = `bold ${fontSize}px monospace`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        
+
         // Add a single centered watermark, rotated diagonally
         ctx.save()
         ctx.globalAlpha = 0.5 // Semi-transparent watermark
         ctx.fillStyle = '#000000'
         ctx.strokeStyle = '#ffffff'
         ctx.lineWidth = 3
-        
+
         // Position at center of image
         ctx.translate(canvasWidth / 2, canvasHeight / 2)
         ctx.rotate(-Math.PI / 4) // 45 degree rotation
-        
+
         // Draw text with stroke for better visibility
         ctx.strokeText(text, 0, 0)
         ctx.fillText(text, 0, 0)
-        
+
         ctx.restore()
-        
+
         resolve()
       } catch (error) {
         console.error('Error in onload handler:', error)
         reject(error)
       }
     }
-    
+
     img.onerror = (error) => {
       console.error('Image load error:', error)
       console.error('Failed to load image from URL:', imageUrl)
       console.error('Image object:', img)
       reject(new Error('Failed to load image from blob URL'))
     }
-    
+
     // Set the image source - this will trigger onload or onerror
     console.log('Setting image source to blob URL:', imageUrl.substring(0, 50) + '...')
     img.src = imageUrl
@@ -470,10 +697,10 @@ const viewDocument = async (doc) => {
   currentDocument.value = doc
   viewerLoading.value = true
   showViewer.value = true
-  
+
   // Wait for dialog to open and render
   await nextTick()
-  await new Promise(resolve => setTimeout(resolve, 100))
+  await new Promise((resolve) => setTimeout(resolve, 100))
 
   try {
     // Get the document view URL - use blob response type
@@ -482,36 +709,34 @@ const viewDocument = async (doc) => {
     })
 
     // response.data is already a Blob when responseType is 'blob'
-    // Use it directly - don't recreate it as that can cause issues
     const blob = response.data
     if (!(blob instanceof Blob)) {
       console.error('Response data is not a Blob:', typeof response.data)
       throw new Error('Invalid response format')
     }
-    
+
     console.log('Blob created:', {
       size: blob.size,
       type: blob.type,
-      fileType: doc.file_type
+      fileType: doc.file_type,
     })
-    
+
     const blobUrl = URL.createObjectURL(blob)
     console.log('Blob URL created:', blobUrl.substring(0, 50) + '...')
-    
+
     // For images, we need the canvas to be rendered first
-    // Set loading to false so canvas is rendered in DOM
     if (doc.file_type !== 'pdf') {
       viewerLoading.value = false
       // Wait for canvas to be rendered in DOM
       await nextTick()
-      await new Promise(resolve => setTimeout(resolve, 150))
-      
+      await new Promise((resolve) => setTimeout(resolve, 150))
+
       // Function to wait for canvas to be available
       const waitForCanvas = async (maxAttempts = 20) => {
         for (let i = 0; i < maxAttempts; i++) {
           await nextTick()
-          await new Promise(resolve => setTimeout(resolve, 50))
-          
+          await new Promise((resolve) => setTimeout(resolve, 50))
+
           // Check both ref and DOM element
           if (imageCanvas.value) {
             // Verify it's actually in the DOM
@@ -520,7 +745,7 @@ const viewDocument = async (doc) => {
               return true
             }
           }
-          
+
           // Try to find canvas in DOM directly
           const canvasInDom = document.querySelector('#document-viewer canvas')
           if (canvasInDom) {
@@ -534,9 +759,9 @@ const viewDocument = async (doc) => {
         }
         return false
       }
-      
+
       const canvasAvailable = await waitForCanvas()
-      
+
       if (!canvasAvailable || !imageCanvas.value) {
         console.error('Canvas ref is still not available after waiting')
         // Try to find it in DOM one more time
@@ -546,14 +771,13 @@ const viewDocument = async (doc) => {
           console.log('Assigned canvas from DOM to ref')
         } else {
           console.error('Canvas element not found in DOM')
-          // Fallback: show image with CSS overlay only
           documentUrl.value = blobUrl
           viewerLoading.value = false
           await loadDocuments()
           return
         }
       }
-      
+
       try {
         // Convert blob to data URL for more reliable loading
         const dataUrl = await new Promise((resolve, reject) => {
@@ -562,7 +786,7 @@ const viewDocument = async (doc) => {
           reader.onerror = reject
           reader.readAsDataURL(blob)
         })
-        
+
         console.log('Data URL created, applying watermark...')
         await addWatermarkToImage(dataUrl)
         console.log('Watermark applied successfully')
@@ -574,19 +798,17 @@ const viewDocument = async (doc) => {
           console.log('Watermark applied with blob URL as fallback')
         } catch (blobError) {
           console.error('Both data URL and blob URL failed:', blobError)
-          // Last resort: show image with CSS overlay only
           documentUrl.value = blobUrl
         }
       }
-      // viewerLoading is already set to false above for images
     } else {
       // For PDFs, render with watermark on canvas
       viewerLoading.value = false
       // Set pdfLoading to false first so container is rendered
       pdfLoading.value = false
       await nextTick()
-      await new Promise(resolve => setTimeout(resolve, 200))
-      
+      await new Promise((resolve) => setTimeout(resolve, 200))
+
       try {
         await renderPdfWithWatermark(blobUrl)
       } catch (error) {
@@ -631,6 +853,58 @@ const closeViewer = () => {
 </script>
 
 <style scoped>
+.stat-card {
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  border-left: 4px solid transparent;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.stat-card-blue {
+  border-left-color: #1976d2;
+}
+
+.stat-card-green {
+  border-left-color: #21ba45;
+}
+
+.stat-card-orange {
+  border-left-color: #f2c037;
+}
+
+.stat-card-purple {
+  border-left-color: #9c27b0;
+}
+
+.document-card {
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.document-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.document-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.document-disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 /* Additional CSS to prevent text selection and right-click */
 #document-viewer {
   -webkit-user-select: none;
@@ -672,30 +946,10 @@ const closeViewer = () => {
   user-select: none;
 }
 
-/* Watermark overlay styles */
-.watermark-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 1000;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-}
-
 /* Disable print screen attempts */
 @media print {
   #document-viewer {
     display: none;
   }
-  
-  .watermark-overlay {
-    display: none;
-  }
 }
 </style>
-
