@@ -16,6 +16,7 @@
         <q-tab name="manual" label="Manual Entry" icon="edit" />
         <q-tab name="qr" label="QR Scanner" icon="qr_code_scanner" />
         <q-tab name="history" label="Attendance History" icon="history" />
+        <q-tab name="schedules" label="Class Schedules" icon="schedule" />
       </q-tabs>
 
       <q-tab-panels v-model="tab" animated>
@@ -210,8 +211,402 @@
             </template>
           </q-table>
         </q-tab-panel>
+
+        <!-- Schedules Tab -->
+        <q-tab-panel name="schedules">
+          <q-tabs v-model="scheduleTab" align="left" class="text-primary q-mb-md">
+            <q-tab name="default" label="Default Weekly Schedules" icon="event_repeat" />
+            <q-tab name="extra" label="Extra Classes" icon="event" />
+          </q-tabs>
+
+          <q-tab-panels v-model="scheduleTab" animated>
+            <!-- Default Schedules Panel -->
+            <q-tab-panel name="default">
+              <div class="row q-col-gutter-md q-mb-md">
+                <div class="col-12 col-md-4">
+                  <q-select
+                    v-model="scheduleFilterClass"
+                    label="Filter by Class"
+                    dense
+                    outlined
+                    clearable
+                    :options="classOptions"
+                    option-label="label"
+                    option-value="value"
+                    emit-value
+                    map-options
+                    @update:model-value="loadDefaultSchedules"
+                  />
+                </div>
+                <div class="col-12 col-md-8 text-right">
+                  <q-btn
+                    color="primary"
+                    no-caps
+                    icon="add"
+                    label="Add Default Schedule"
+                    @click="showAddDefaultSchedule = true"
+                  />
+                </div>
+              </div>
+
+              <q-table
+                :rows="defaultSchedules"
+                :columns="defaultScheduleColumns"
+                row-key="id"
+                flat
+                bordered
+                :loading="loadingSchedules"
+              >
+                <template #body-cell-day_of_week="props">
+                  <q-td :props="props">
+                    {{ getDayName(props.value) }}
+                  </q-td>
+                </template>
+                <template #body-cell-is_active="props">
+                  <q-td :props="props">
+                    <q-chip
+                      :color="props.value ? 'positive' : 'grey'"
+                      text-color="white"
+                      size="sm"
+                    >
+                      {{ props.value ? 'Active' : 'Inactive' }}
+                    </q-chip>
+                  </q-td>
+                </template>
+                <template #body-cell-actions="props">
+                  <q-td :props="props">
+                    <q-btn
+                      dense
+                      flat
+                      round
+                      icon="edit"
+                      color="primary"
+                      class="q-mr-xs"
+                      @click="editDefaultSchedule(props.row)"
+                    />
+                    <q-btn
+                      dense
+                      flat
+                      round
+                      icon="delete"
+                      color="negative"
+                      @click="confirmDeleteDefaultSchedule(props.row)"
+                    />
+                  </q-td>
+                </template>
+              </q-table>
+            </q-tab-panel>
+
+            <!-- Extra Classes Panel -->
+            <q-tab-panel name="extra">
+              <div class="row q-col-gutter-md q-mb-md">
+                <div class="col-12 col-md-3">
+                  <q-input
+                    v-model="extraClassFilterDateFrom"
+                    label="From Date"
+                    dense
+                    outlined
+                    type="date"
+                    @update:model-value="loadExtraClasses"
+                  />
+                </div>
+                <div class="col-12 col-md-3">
+                  <q-input
+                    v-model="extraClassFilterDateTo"
+                    label="To Date"
+                    dense
+                    outlined
+                    type="date"
+                    @update:model-value="loadExtraClasses"
+                  />
+                </div>
+                <div class="col-12 col-md-3">
+                  <q-select
+                    v-model="extraClassFilterClass"
+                    label="Filter by Class"
+                    dense
+                    outlined
+                    clearable
+                    :options="classOptions"
+                    option-label="label"
+                    option-value="value"
+                    emit-value
+                    map-options
+                    @update:model-value="loadExtraClasses"
+                  />
+                </div>
+                <div class="col-12 col-md-3 text-right">
+                  <q-btn
+                    color="primary"
+                    no-caps
+                    icon="add"
+                    label="Add Extra Class"
+                    @click="showAddExtraClass = true"
+                  />
+                </div>
+              </div>
+
+              <q-table
+                :rows="extraClasses"
+                :columns="extraClassColumns"
+                row-key="id"
+                flat
+                bordered
+                :loading="loadingExtraClasses"
+              >
+                <template #body-cell-classes="props">
+                  <q-td :props="props">
+                    <div class="flex flex-wrap q-gutter-xs">
+                      <q-chip
+                        v-for="cls in props.value"
+                        :key="cls.id"
+                        color="primary"
+                        text-color="white"
+                        size="sm"
+                        dense
+                      >
+                        {{ cls.class_name }}
+                      </q-chip>
+                    </div>
+                  </q-td>
+                </template>
+                <template #body-cell-is_active="props">
+                  <q-td :props="props">
+                    <q-chip
+                      :color="props.value ? 'positive' : 'grey'"
+                      text-color="white"
+                      size="sm"
+                    >
+                      {{ props.value ? 'Active' : 'Inactive' }}
+                    </q-chip>
+                  </q-td>
+                </template>
+                <template #body-cell-actions="props">
+                  <q-td :props="props">
+                    <q-btn
+                      dense
+                      flat
+                      round
+                      icon="edit"
+                      color="primary"
+                      class="q-mr-xs"
+                      @click="editExtraClass(props.row)"
+                    />
+                    <q-btn
+                      dense
+                      flat
+                      round
+                      icon="delete"
+                      color="negative"
+                      @click="confirmDeleteExtraClass(props.row)"
+                    />
+                  </q-td>
+                </template>
+              </q-table>
+            </q-tab-panel>
+          </q-tab-panels>
+        </q-tab-panel>
       </q-tab-panels>
     </q-card>
+
+    <!-- Add/Edit Default Schedule Dialog -->
+    <q-dialog v-model="showAddDefaultSchedule" persistent>
+      <q-card style="min-width: 500px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">
+            {{ editingDefaultSchedule ? 'Edit' : 'Add' }} Default Schedule
+          </div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-separator />
+        <q-card-section>
+          <q-form @submit.prevent="submitDefaultSchedule">
+            <div class="q-gutter-md">
+              <q-select
+                v-model="defaultScheduleForm.class_id"
+                label="Class *"
+                dense
+                outlined
+                :options="classOptions"
+                option-label="label"
+                option-value="value"
+                emit-value
+                map-options
+                :rules="[(v) => !!v || 'Required']"
+                :disable="editingDefaultSchedule"
+              />
+              <q-select
+                v-model="defaultScheduleForm.day_of_week"
+                label="Day of Week *"
+                dense
+                outlined
+                :options="dayOptions"
+                option-label="label"
+                option-value="value"
+                emit-value
+                map-options
+                :rules="[(v) => v !== null && v !== undefined || 'Required']"
+              />
+              <q-input
+                v-model="defaultScheduleForm.start_time"
+                label="Start Time *"
+                dense
+                outlined
+                type="time"
+                :rules="[(v) => !!v || 'Required']"
+              />
+              <q-input
+                v-model="defaultScheduleForm.end_time"
+                label="End Time"
+                dense
+                outlined
+                type="time"
+              />
+              <q-checkbox
+                v-model="defaultScheduleForm.is_active"
+                label="Active"
+              />
+            </div>
+            <div class="row justify-end q-mt-lg q-gutter-sm">
+              <q-btn flat no-caps label="Cancel" v-close-popup />
+              <q-btn
+                color="primary"
+                no-caps
+                label="Save"
+                type="submit"
+                :loading="savingSchedule"
+              />
+            </div>
+          </q-form>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <!-- Add/Edit Extra Class Dialog -->
+    <q-dialog v-model="showAddExtraClass" persistent>
+      <q-card style="min-width: 600px; max-width: 800px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">
+            {{ editingExtraClass ? 'Edit' : 'Add' }} Extra Class
+          </div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-separator />
+        <q-card-section>
+          <q-form @submit.prevent="submitExtraClass">
+            <div class="q-gutter-md">
+              <q-input
+                v-model="extraClassForm.session_date"
+                label="Session Date *"
+                dense
+                outlined
+                type="date"
+                :rules="[(v) => !!v || 'Required']"
+              />
+              <q-input
+                v-model="extraClassForm.start_time"
+                label="Start Time *"
+                dense
+                outlined
+                type="time"
+                :rules="[(v) => !!v || 'Required']"
+              />
+              <q-input
+                v-model="extraClassForm.end_time"
+                label="End Time"
+                dense
+                outlined
+                type="time"
+              />
+              <q-select
+                v-model="extraClassForm.class_ids"
+                label="Allowed Classes *"
+                dense
+                outlined
+                multiple
+                :options="classOptions"
+                option-label="label"
+                option-value="value"
+                emit-value
+                map-options
+                use-chips
+                :rules="[(v) => (Array.isArray(v) && v.length > 0) || 'Select at least one class']"
+                hint="Select one or more classes allowed for this session"
+              />
+              <q-input
+                v-model="extraClassForm.description"
+                label="Description"
+                dense
+                outlined
+                type="textarea"
+                rows="3"
+              />
+              <q-checkbox
+                v-model="extraClassForm.is_active"
+                label="Active"
+              />
+            </div>
+            <div class="row justify-end q-mt-lg q-gutter-sm">
+              <q-btn flat no-caps label="Cancel" v-close-popup />
+              <q-btn
+                color="primary"
+                no-caps
+                label="Save"
+                type="submit"
+                :loading="savingExtraClass"
+              />
+            </div>
+          </q-form>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <!-- Delete Confirmation Dialogs -->
+    <q-dialog v-model="showDeleteDefaultSchedule" persistent>
+      <q-card>
+        <q-card-section class="row items-center">
+          <q-avatar icon="warning" color="negative" text-color="white" />
+          <span class="q-ml-sm text-h6">Confirm Delete</span>
+        </q-card-section>
+        <q-card-section>
+          Are you sure you want to delete this default schedule?
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="primary" v-close-popup />
+          <q-btn
+            flat
+            label="Delete"
+            color="negative"
+            @click="deleteDefaultSchedule"
+            :loading="deletingSchedule"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="showDeleteExtraClass" persistent>
+      <q-card>
+        <q-card-section class="row items-center">
+          <q-avatar icon="warning" color="negative" text-color="white" />
+          <span class="q-ml-sm text-h6">Confirm Delete</span>
+        </q-card-section>
+        <q-card-section>
+          Are you sure you want to delete this extra class?
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="primary" v-close-popup />
+          <q-btn
+            flat
+            label="Delete"
+            color="negative"
+            @click="deleteExtraClass"
+            :loading="deletingExtraClass"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <!-- Success Dialog -->
     <q-dialog v-model="showSuccess">
@@ -229,10 +624,11 @@
 </template>
 
 <script setup>
-import { onMounted, ref, onUnmounted } from 'vue'
+import { onMounted, ref, onUnmounted, watch } from 'vue'
 import { api } from 'src/boot/axios'
 
 const tab = ref('manual')
+const scheduleTab = ref('default')
 const showQRScanner = ref(false)
 const showSuccess = ref(false)
 const successMessage = ref('')
@@ -247,6 +643,80 @@ const enrollments = ref([])
 const enrollmentOptions = ref([])
 const allEnrollments = ref([])
 const attendanceHistory = ref([])
+
+// Schedule management
+const classes = ref([])
+const classOptions = ref([])
+const defaultSchedules = ref([])
+const extraClasses = ref([])
+const loadingSchedules = ref(false)
+const loadingExtraClasses = ref(false)
+const savingSchedule = ref(false)
+const savingExtraClass = ref(false)
+const deletingSchedule = ref(false)
+const deletingExtraClass = ref(false)
+
+const showAddDefaultSchedule = ref(false)
+const showAddExtraClass = ref(false)
+const showDeleteDefaultSchedule = ref(false)
+const showDeleteExtraClass = ref(false)
+const editingDefaultSchedule = ref(false)
+const editingExtraClass = ref(false)
+const scheduleToDelete = ref(null)
+const extraClassToDelete = ref(null)
+
+const scheduleFilterClass = ref(null)
+const extraClassFilterDateFrom = ref(null)
+const extraClassFilterDateTo = ref(null)
+const extraClassFilterClass = ref(null)
+
+const defaultScheduleForm = ref({
+  id: null,
+  class_id: null,
+  day_of_week: null,
+  start_time: '',
+  end_time: '',
+  is_active: true,
+})
+
+const extraClassForm = ref({
+  id: null,
+  session_date: '',
+  start_time: '',
+  end_time: '',
+  class_ids: [],
+  description: '',
+  is_active: true,
+})
+
+const dayOptions = [
+  { label: 'Sunday', value: 0 },
+  { label: 'Monday', value: 1 },
+  { label: 'Tuesday', value: 2 },
+  { label: 'Wednesday', value: 3 },
+  { label: 'Thursday', value: 4 },
+  { label: 'Friday', value: 5 },
+  { label: 'Saturday', value: 6 },
+]
+
+const defaultScheduleColumns = [
+  { name: 'class', label: 'Class', field: (row) => row.class?.class_name, align: 'left' },
+  { name: 'day_of_week', label: 'Day', field: 'day_of_week', align: 'left' },
+  { name: 'start_time', label: 'Start Time', field: 'start_time', align: 'left' },
+  { name: 'end_time', label: 'End Time', field: 'end_time', align: 'left' },
+  { name: 'is_active', label: 'Status', field: 'is_active', align: 'center' },
+  { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
+]
+
+const extraClassColumns = [
+  { name: 'session_date', label: 'Date', field: 'session_date', align: 'left' },
+  { name: 'start_time', label: 'Start Time', field: 'start_time', align: 'left' },
+  { name: 'end_time', label: 'End Time', field: 'end_time', align: 'left' },
+  { name: 'classes', label: 'Allowed Classes', field: 'classes', align: 'left' },
+  { name: 'description', label: 'Description', field: 'description', align: 'left' },
+  { name: 'is_active', label: 'Status', field: 'is_active', align: 'center' },
+  { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
+]
 
 const manualForm = ref({
   enrollment_id: null,
@@ -486,10 +956,267 @@ const closeSuccess = () => {
   lastScanned.value = null
 }
 
+// Schedule management functions
+const loadClasses = async () => {
+  try {
+    const res = await api.get('/admin/classes')
+    if (res.status === 200 && res.data?.data) {
+      classes.value = res.data.data.filter((c) => c.status === 'active')
+      classOptions.value = classes.value.map((c) => ({
+        label: c.class_name,
+        value: c.id,
+      }))
+    }
+  } catch (error) {
+    console.error('Failed to load classes:', error)
+  }
+}
+
+const loadDefaultSchedules = async () => {
+  try {
+    loadingSchedules.value = true
+    const params = {}
+    if (scheduleFilterClass.value) {
+      params.class_id = scheduleFilterClass.value
+    }
+    const res = await api.get('/admin/schedules/default', { params })
+    if (res.status === 200 && res.data?.data) {
+      defaultSchedules.value = res.data.data
+    }
+  } catch (error) {
+    console.error('Failed to load default schedules:', error)
+  } finally {
+    loadingSchedules.value = false
+  }
+}
+
+const loadExtraClasses = async () => {
+  try {
+    loadingExtraClasses.value = true
+    const params = {}
+    if (extraClassFilterDateFrom.value) {
+      params.date_from = extraClassFilterDateFrom.value
+    }
+    if (extraClassFilterDateTo.value) {
+      params.date_to = extraClassFilterDateTo.value
+    }
+    if (extraClassFilterClass.value) {
+      params.class_id = extraClassFilterClass.value
+    }
+    const res = await api.get('/admin/schedules/extra', { params })
+    if (res.status === 200 && res.data?.data) {
+      extraClasses.value = res.data.data
+    }
+  } catch (error) {
+    console.error('Failed to load extra classes:', error)
+  } finally {
+    loadingExtraClasses.value = false
+  }
+}
+
+const getDayName = (dayOfWeek) => {
+  return dayOptions.find((d) => d.value === dayOfWeek)?.label || 'Unknown'
+}
+
+const submitDefaultSchedule = async () => {
+  try {
+    savingSchedule.value = true
+    const payload = {
+      ...defaultScheduleForm.value,
+    }
+    delete payload.id
+
+    let res
+    if (editingDefaultSchedule.value) {
+      res = await api.put(`/admin/schedules/default/${defaultScheduleForm.value.id}`, payload)
+    } else {
+      res = await api.post('/admin/schedules/default', payload)
+    }
+
+    if (res.status === 200 || res.status === 201) {
+      successMessage.value = editingDefaultSchedule.value
+        ? 'Default schedule updated successfully'
+        : 'Default schedule created successfully'
+      showSuccess.value = true
+      showAddDefaultSchedule.value = false
+      resetDefaultScheduleForm()
+      await loadDefaultSchedules()
+    }
+  } catch (error) {
+    console.error('Schedule error:', error)
+    if (error.response?.data?.message) {
+      successMessage.value = error.response.data.message
+      showSuccess.value = true
+    }
+  } finally {
+    savingSchedule.value = false
+  }
+}
+
+const submitExtraClass = async () => {
+  try {
+    savingExtraClass.value = true
+    const payload = {
+      ...extraClassForm.value,
+    }
+    delete payload.id
+
+    let res
+    if (editingExtraClass.value) {
+      res = await api.put(`/admin/schedules/extra/${extraClassForm.value.id}`, payload)
+    } else {
+      res = await api.post('/admin/schedules/extra', payload)
+    }
+
+    if (res.status === 200 || res.status === 201) {
+      successMessage.value = editingExtraClass.value
+        ? 'Extra class updated successfully'
+        : 'Extra class created successfully'
+      showSuccess.value = true
+      showAddExtraClass.value = false
+      resetExtraClassForm()
+      await loadExtraClasses()
+    }
+  } catch (error) {
+    console.error('Extra class error:', error)
+    if (error.response?.data?.message) {
+      successMessage.value = error.response.data.message
+      showSuccess.value = true
+    }
+  } finally {
+    savingExtraClass.value = false
+  }
+}
+
+const editDefaultSchedule = (schedule) => {
+  editingDefaultSchedule.value = true
+  defaultScheduleForm.value = {
+    id: schedule.id,
+    class_id: schedule.class_id,
+    day_of_week: schedule.day_of_week,
+    start_time: schedule.start_time,
+    end_time: schedule.end_time || '',
+    is_active: schedule.is_active,
+  }
+  showAddDefaultSchedule.value = true
+}
+
+const editExtraClass = (extraClass) => {
+  editingExtraClass.value = true
+  extraClassForm.value = {
+    id: extraClass.id,
+    session_date: extraClass.session_date,
+    start_time: extraClass.start_time,
+    end_time: extraClass.end_time || '',
+    class_ids: extraClass.classes?.map((c) => c.id) || [],
+    description: extraClass.description || '',
+    is_active: extraClass.is_active,
+  }
+  showAddExtraClass.value = true
+}
+
+const confirmDeleteDefaultSchedule = (schedule) => {
+  scheduleToDelete.value = schedule
+  showDeleteDefaultSchedule.value = true
+}
+
+const confirmDeleteExtraClass = (extraClass) => {
+  extraClassToDelete.value = extraClass
+  showDeleteExtraClass.value = true
+}
+
+const deleteDefaultSchedule = async () => {
+  if (!scheduleToDelete.value) return
+  try {
+    deletingSchedule.value = true
+    const res = await api.delete(`/admin/schedules/default/${scheduleToDelete.value.id}`)
+    if (res.status === 200) {
+      successMessage.value = 'Default schedule deleted successfully'
+      showSuccess.value = true
+      showDeleteDefaultSchedule.value = false
+      scheduleToDelete.value = null
+      await loadDefaultSchedules()
+    }
+  } catch (error) {
+    console.error('Delete schedule error:', error)
+    if (error.response?.data?.message) {
+      successMessage.value = error.response.data.message
+      showSuccess.value = true
+    }
+  } finally {
+    deletingSchedule.value = false
+  }
+}
+
+const deleteExtraClass = async () => {
+  if (!extraClassToDelete.value) return
+  try {
+    deletingExtraClass.value = true
+    const res = await api.delete(`/admin/schedules/extra/${extraClassToDelete.value.id}`)
+    if (res.status === 200) {
+      successMessage.value = 'Extra class deleted successfully'
+      showSuccess.value = true
+      showDeleteExtraClass.value = false
+      extraClassToDelete.value = null
+      await loadExtraClasses()
+    }
+  } catch (error) {
+    console.error('Delete extra class error:', error)
+    if (error.response?.data?.message) {
+      successMessage.value = error.response.data.message
+      showSuccess.value = true
+    }
+  } finally {
+    deletingExtraClass.value = false
+  }
+}
+
+const resetDefaultScheduleForm = () => {
+  editingDefaultSchedule.value = false
+  defaultScheduleForm.value = {
+    id: null,
+    class_id: null,
+    day_of_week: null,
+    start_time: '',
+    end_time: '',
+    is_active: true,
+  }
+}
+
+const resetExtraClassForm = () => {
+  editingExtraClass.value = false
+  extraClassForm.value = {
+    id: null,
+    session_date: '',
+    start_time: '',
+    end_time: '',
+    class_ids: [],
+    description: '',
+    is_active: true,
+  }
+}
+
+// Watch for dialog close to reset forms
+const watchDialogClose = () => {
+  if (!showAddDefaultSchedule.value) {
+    resetDefaultScheduleForm()
+  }
+  if (!showAddExtraClass.value) {
+    resetExtraClassForm()
+  }
+}
+
 onMounted(() => {
   loadEnrollments()
   loadHistory()
+  loadClasses()
+  loadDefaultSchedules()
+  loadExtraClasses()
 })
+
+// Watch dialogs
+watch(showAddDefaultSchedule, watchDialogClose)
+watch(showAddExtraClass, watchDialogClose)
 
 onUnmounted(() => {
   if (scanner.value) {

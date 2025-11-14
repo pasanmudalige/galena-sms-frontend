@@ -370,6 +370,25 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
+
+      <!-- Delete Confirmation Dialog -->
+      <q-dialog v-model="showDeleteConfirm" persistent>
+        <q-card>
+          <q-card-section class="row items-center">
+            <q-avatar icon="warning" color="negative" text-color="white" />
+            <span class="q-ml-sm text-h6">Confirm Delete</span>
+          </q-card-section>
+          <q-card-section>
+            Are you sure you want to delete this enrollment?
+            <br />
+            <span class="text-caption text-grey-6">This action cannot be undone.</span>
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="primary" v-close-popup />
+            <q-btn flat label="Delete" color="negative" @click="confirmDelete" :loading="deleting" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </div>
   </q-page>
 </template>
@@ -378,19 +397,19 @@
 import { onMounted, ref, computed } from 'vue'
 import { api } from 'src/boot/axios'
 import { showSuccessNotification, showErrorNotification } from 'src/utils/notification'
-import { useQuasar } from 'quasar'
-
-const $q = useQuasar()
 const rows = ref([])
 const loading = ref(false)
 const showEnroll = ref(false)
 const showQR = ref(false)
 const showSuccess = ref(false)
+const showDeleteConfirm = ref(false)
 const successMessage = ref('')
 const saving = ref(false)
+const deleting = ref(false)
 const qrCodeImage = ref('')
 const qrCodeString = ref('')
 const enrollmentDetails = ref(null)
+const enrollmentToDelete = ref(null)
 const students = ref([])
 const classes = ref([])
 const studentOptions = ref([])
@@ -587,7 +606,8 @@ const submitEnroll = async () => {
       showSuccessNotification('Student enrolled successfully')
     }
   } catch (error) {
-    showErrorNotification('Failed to enroll student')
+    const errorMessage = error.response?.data?.message || 'Failed to enroll student'
+    showErrorNotification(errorMessage)
     console.error('Enrollment error:', error)
   } finally {
     saving.value = false
@@ -625,22 +645,28 @@ const onEdit = (row) => {
   console.log('Edit enrollment:', row)
 }
 
-const onDelete = async (row) => {
-  $q.dialog({
-    title: 'Confirm Delete',
-    message: `Are you sure you want to delete this enrollment?`,
-    cancel: true,
-    persistent: true,
-  }).onOk(async () => {
-    try {
-      await api.delete(`/admin/enrollments/${row.id}`)
-      await loadEnrollments()
-      showSuccessNotification('Enrollment deleted successfully')
-    } catch (error) {
-      showErrorNotification('Failed to delete enrollment')
-      console.error(error)
-    }
-  })
+const onDelete = (row) => {
+  enrollmentToDelete.value = row
+  showDeleteConfirm.value = true
+}
+
+const confirmDelete = async () => {
+  if (!enrollmentToDelete.value) return
+  
+  try {
+    deleting.value = true
+    await api.delete(`/admin/enrollments/${enrollmentToDelete.value.id}`)
+    await loadEnrollments()
+    showDeleteConfirm.value = false
+    enrollmentToDelete.value = null
+    showSuccessNotification('Enrollment deleted successfully')
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || 'Failed to delete enrollment'
+    showErrorNotification(errorMessage)
+    console.error(error)
+  } finally {
+    deleting.value = false
+  }
 }
 
 const closeSuccess = () => {
