@@ -554,6 +554,57 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
+
+      <!-- Delete Confirmation Dialog -->
+      <q-dialog v-model="showDeleteConfirm" persistent>
+        <q-card style="min-width: 350px">
+          <q-card-section class="row items-center">
+            <q-avatar icon="delete" color="negative" text-color="white" />
+            <span class="q-ml-sm text-h6">Confirm Delete</span>
+          </q-card-section>
+          <q-card-section>
+            Are you sure you want to delete {{ studentToDelete?.student_name }}?
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="grey-7" v-close-popup />
+            <q-btn flat label="Delete" color="negative" @click="confirmDelete" :loading="deleting" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <!-- Grant Access Confirmation Dialog -->
+      <q-dialog v-model="showGrantAccessConfirm" persistent>
+        <q-card style="min-width: 350px">
+          <q-card-section class="row items-center">
+            <q-avatar icon="vpn_key" color="positive" text-color="white" />
+            <span class="q-ml-sm text-h6">Grant Access</span>
+          </q-card-section>
+          <q-card-section>
+            Grant access to {{ studentToGrantAccess?.student_name }}?
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="grey-7" v-close-popup />
+            <q-btn flat label="Grant Access" color="positive" @click="confirmGrantAccess" :loading="grantingAccess" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <!-- Reset Password Confirmation Dialog -->
+      <q-dialog v-model="showResetPasswordConfirm" persistent>
+        <q-card style="min-width: 350px">
+          <q-card-section class="row items-center">
+            <q-avatar icon="lock_reset" color="warning" text-color="white" />
+            <span class="q-ml-sm text-h6">Reset Password</span>
+          </q-card-section>
+          <q-card-section>
+            Reset password for {{ studentToResetPassword?.student_name }}?
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="grey-7" v-close-popup />
+            <q-btn flat label="Reset Password" color="warning" @click="confirmResetPassword" :loading="resettingPassword" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </div>
   </q-page>
 </template>
@@ -562,11 +613,18 @@
 import { onMounted, ref, computed } from 'vue'
 import { api } from 'src/boot/axios'
 import { showSuccessNotification, showErrorNotification } from 'src/utils/notification'
-import { useQuasar } from 'quasar'
 
-const $q = useQuasar()
 const rows = ref([])
 const loading = ref(false)
+const showDeleteConfirm = ref(false)
+const showGrantAccessConfirm = ref(false)
+const showResetPasswordConfirm = ref(false)
+const studentToDelete = ref(null)
+const studentToGrantAccess = ref(null)
+const studentToResetPassword = ref(null)
+const deleting = ref(false)
+const grantingAccess = ref(false)
+const resettingPassword = ref(false)
 const showAdd = ref(false)
 const showEdit = ref(false)
 const showSuccess = ref(false)
@@ -741,22 +799,27 @@ const submitEdit = async () => {
   }
 }
 
-const onDelete = async (row) => {
-  $q.dialog({
-    title: 'Confirm Delete',
-    message: `Are you sure you want to delete ${row.student_name}?`,
-    cancel: true,
-    persistent: true,
-  }).onOk(async () => {
-    try {
-      await api.delete(`/admin/students/${row.id}`)
-      await load()
-      showSuccessNotification('Student deleted successfully')
-    } catch (error) {
-      showErrorNotification('Failed to delete student')
-      console.error(error)
-    }
-  })
+const onDelete = (row) => {
+  studentToDelete.value = row
+  showDeleteConfirm.value = true
+}
+
+const confirmDelete = async () => {
+  if (!studentToDelete.value) return
+  
+  deleting.value = true
+  try {
+    await api.delete(`/admin/students/${studentToDelete.value.id}`)
+    await load()
+    showSuccessNotification('Student deleted successfully')
+    showDeleteConfirm.value = false
+    studentToDelete.value = null
+  } catch (error) {
+    showErrorNotification(error.response?.data?.message || 'Failed to delete student')
+    console.error(error)
+  } finally {
+    deleting.value = false
+  }
 }
 
 onMounted(() => {
@@ -836,65 +899,67 @@ const closeSuccess = () => {
   successMessage.value = ''
 }
 
-const grantAccess = async (row) => {
-  $q.dialog({
-    title: 'Grant Access',
-    message: `Grant access to ${row.student_name}?`,
-    cancel: true,
-    persistent: true,
-  }).onOk(async () => {
-    try {
-      const res = await api.post(`/admin/students/${row.id}/grant-access`)
-      if (res.status === 200 && res.data?.data) {
-        credentials.value = {
-          student_name: res.data.data.student_name,
-          student_id: res.data.data.student_id,
-          username: res.data.data.username,
-          password: res.data.data.password,
-        }
-        showCredentials.value = true
-        await load()
-        showSuccessNotification('Access granted successfully')
-      }
-    } catch (error) {
-      console.error('Grant access error:', error)
-      if (error.response?.data?.message) {
-        showErrorNotification(error.response.data.message)
-      } else {
-        showErrorNotification('Failed to grant access')
-      }
-    }
-  })
+const grantAccess = (row) => {
+  studentToGrantAccess.value = row
+  showGrantAccessConfirm.value = true
 }
 
-const resetPassword = async (row) => {
-  $q.dialog({
-    title: 'Reset Password',
-    message: `Reset password for ${row.student_name}?`,
-    cancel: true,
-    persistent: true,
-  }).onOk(async () => {
-    try {
-      const res = await api.post(`/admin/students/${row.id}/reset-password`)
-      if (res.status === 200 && res.data?.data) {
-        credentials.value = {
-          student_name: res.data.data.student_name,
-          student_id: res.data.data.student_id,
-          username: res.data.data.username,
-          password: res.data.data.password,
-        }
-        showCredentials.value = true
-        showSuccessNotification('Password reset successfully')
+const confirmGrantAccess = async () => {
+  if (!studentToGrantAccess.value) return
+  
+  grantingAccess.value = true
+  try {
+    const res = await api.post(`/admin/students/${studentToGrantAccess.value.id}/grant-access`)
+    if (res.status === 200 && res.data?.data) {
+      credentials.value = {
+        student_name: res.data.data.student_name,
+        student_id: res.data.data.student_id,
+        username: res.data.data.username,
+        password: res.data.data.password,
       }
-    } catch (error) {
-      console.error('Reset password error:', error)
-      if (error.response?.data?.message) {
-        showErrorNotification(error.response.data.message)
-      } else {
-        showErrorNotification('Failed to reset password')
-      }
+      showCredentials.value = true
+      await load()
+      showSuccessNotification('Access granted successfully')
+      showGrantAccessConfirm.value = false
+      studentToGrantAccess.value = null
     }
-  })
+  } catch (error) {
+    console.error('Grant access error:', error)
+    showErrorNotification(error.response?.data?.message || 'Failed to grant access')
+  } finally {
+    grantingAccess.value = false
+  }
+}
+
+const resetPassword = (row) => {
+  studentToResetPassword.value = row
+  showResetPasswordConfirm.value = true
+}
+
+const confirmResetPassword = async () => {
+  if (!studentToResetPassword.value) return
+  
+  resettingPassword.value = true
+  try {
+    const res = await api.post(`/admin/students/${studentToResetPassword.value.id}/reset-password`)
+    if (res.status === 200 && res.data?.data) {
+      credentials.value = {
+        student_name: res.data.data.student_name,
+        student_id: res.data.data.student_id,
+        username: res.data.data.username,
+        password: res.data.data.password,
+      }
+      showCredentials.value = true
+      showSuccessNotification('Password reset successfully')
+      showResetPasswordConfirm.value = false
+      studentToResetPassword.value = null
+    }
+  } catch (error) {
+    console.error('Reset password error:', error)
+    showErrorNotification(error.response?.data?.message || 'Failed to reset password')
+  } finally {
+    resettingPassword.value = false
+  }
 }
 
 const copyToClipboard = async (text) => {

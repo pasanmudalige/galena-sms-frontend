@@ -130,19 +130,90 @@
               />
             </div>
 
-            <div v-if="lastScanned" class="q-mt-md">
-              <q-card class="bg-positive text-white">
+            <!-- QR Scan Result Dialog -->
+            <q-dialog v-model="showQRResult" persistent>
+              <q-card style="min-width: 450px">
+                <q-card-section class="row items-center q-pb-none">
+                  <div class="text-h6 text-weight-bold">Attendance Marked</div>
+                  <q-space />
+                  <q-btn icon="close" flat round dense @click="closeQRResult" />
+                </q-card-section>
+                <q-separator />
                 <q-card-section>
-                  <q-icon name="check_circle" size="48px" />
-                  <div class="text-h6 q-mt-sm">Attendance Marked Successfully!</div>
-                  <div class="q-mt-sm">
-                    Student: {{ lastScanned.student_name }}<br />
-                    Class: {{ lastScanned.class_name }}<br />
-                    Time: {{ lastScanned.attendance_datetime }}
+                  <div class="q-gutter-md">
+                    <div class="row items-center q-gutter-sm">
+                      <q-icon
+                        :name="lastScanned?.payment_status === 'payment_pending' ? 'warning' : 'check_circle'"
+                        :color="lastScanned?.payment_status === 'payment_pending' ? 'warning' : 'positive'"
+                        size="48px"
+                      />
+                      <div class="col">
+                        <div class="text-h6 text-weight-bold">
+                          {{ lastScanned?.payment_status === 'payment_pending' ? 'Attendance Marked (Payment Pending)' : 'Attendance Marked Successfully!' }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <q-separator />
+
+                    <div class="q-gutter-sm">
+                      <div class="row items-center">
+                        <div class="col-4 text-body2 text-grey-7">Student Name:</div>
+                        <div class="col-8 text-body1 text-weight-medium">
+                          {{ lastScanned?.student_name || 'N/A' }}
+                        </div>
+                      </div>
+                      <div class="row items-center">
+                        <div class="col-4 text-body2 text-grey-7">Student ID:</div>
+                        <div class="col-8 text-body1 text-weight-medium">
+                          {{ lastScanned?.student_id || 'N/A' }}
+                        </div>
+                      </div>
+                      <div class="row items-center">
+                        <div class="col-4 text-body2 text-grey-7">Class:</div>
+                        <div class="col-8 text-body1 text-weight-medium">
+                          {{ lastScanned?.class_name || 'N/A' }}
+                        </div>
+                      </div>
+                      <div class="row items-center">
+                        <div class="col-4 text-body2 text-grey-7">Time:</div>
+                        <div class="col-8 text-body1">
+                          {{ lastScanned?.attendance_datetime || 'N/A' }}
+                        </div>
+                      </div>
+                      <q-separator />
+                      <div class="row items-center q-mt-sm">
+                        <div class="col-4 text-body2 text-grey-7">Payment Status:</div>
+                        <div class="col-8">
+                          <q-chip
+                            :color="getPaymentStatusColor(lastScanned?.payment_status)"
+                            text-color="white"
+                            :icon="getPaymentStatusIcon(lastScanned?.payment_status)"
+                            size="md"
+                          >
+                            <span class="text-weight-bold">
+                              {{ getPaymentStatusLabel(lastScanned?.payment_status) }}
+                            </span>
+                          </q-chip>
+                        </div>
+                      </div>
+                      <div
+                        v-if="getPaymentStatusLabel(lastScanned?.payment_status) === 'Payment Pending'"
+                        class="q-mt-sm q-pa-sm bg-warning-1 rounded-borders"
+                      >
+                        <div class="text-caption text-warning-8">
+                          <q-icon name="info" size="16px" class="q-mr-xs" />
+                          This student's attendance has been marked, but payment for the current month is pending.
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </q-card-section>
+                <q-card-actions align="right">
+                  <q-btn color="primary" no-caps label="OK" @click="closeQRResult" />
+                </q-card-actions>
               </q-card>
-            </div>
+            </q-dialog>
           </div>
         </q-tab-panel>
 
@@ -626,6 +697,7 @@
 <script setup>
 import { onMounted, ref, onUnmounted, watch } from 'vue'
 import { api } from 'src/boot/axios'
+import { formatDateTime12H } from 'src/utils/date-converts'
 
 const tab = ref('manual')
 const scheduleTab = ref('default')
@@ -638,6 +710,8 @@ const scanning = ref(false)
 const scanner = ref(null)
 // const videoElement = ref(null)
 const lastScanned = ref(null)
+const showQRResult = ref(false)
+const processingScan = ref(false) // Flag to prevent multiple simultaneous scans
 
 const enrollments = ref([])
 const enrollmentOptions = ref([])
@@ -753,7 +827,7 @@ const historyColumns = [
     field: 'attendance_datetime',
     align: 'left',
     sortable: true,
-    format: (val) => (val ? new Date(val).toLocaleString() : '-'),
+    format: (val) => (val ? formatDateTime12H(val) : '-'),
   },
   {
     name: 'status',
@@ -895,9 +969,14 @@ const stopScanner = () => {
 }
 
 const handleQRScan = async (qrCode) => {
-  if (scanner.value) {
-    stopScanner()
+  // Prevent processing multiple scans simultaneously
+  if (processingScan.value) {
+    console.log('Already processing a scan, ignoring...')
+    return
   }
+
+  // Don't stop scanner - keep it running for continuous scanning
+  processingScan.value = true
 
   try {
     const payload = {
@@ -907,13 +986,24 @@ const handleQRScan = async (qrCode) => {
 
     const res = await api.post('/admin/attendance/qr-scan', payload)
     if (res.status === 201) {
+      // Map attendance_status to payment_status for display
+      // attendance_status can be 'present' (payment paid) or 'payment_pending' (payment not paid)
+      const attendanceStatus = res.data.data.attendance_status
+      console.log('Attendance marked - Raw attendance_status:', attendanceStatus, 'Type:', typeof attendanceStatus)
+      console.log('Full response data:', res.data.data)
+      
+      // Ensure we have a valid status, default to payment_pending if not present
+      const paymentStatus = attendanceStatus === 'present' ? 'present' : 'payment_pending'
+      
       lastScanned.value = {
         student_name: res.data.data.enrollment?.student?.student_name,
+        student_id: res.data.data.enrollment?.student?.student_id,
         class_name: res.data.data.enrollment?.class?.class_name,
-        attendance_datetime: new Date(res.data.data.attendance_datetime).toLocaleString(),
+        attendance_datetime: formatDateTime12H(res.data.data.attendance_datetime),
+        payment_status: paymentStatus, // 'present' or 'payment_pending'
       }
-      successMessage.value = 'Attendance marked successfully via QR scan'
-      showSuccess.value = true
+      console.log('Set payment_status to:', paymentStatus)
+      showQRResult.value = true
       await loadHistory()
     }
   } catch (error) {
@@ -922,6 +1012,46 @@ const handleQRScan = async (qrCode) => {
       successMessage.value = error.response.data.message
       showSuccess.value = true
     }
+  } finally {
+    // Reset processing flag after a short delay to allow popup to show
+    // The scanner will continue running and be ready for the next scan
+    setTimeout(() => {
+      processingScan.value = false
+    }, 500)
+  }
+}
+
+const closeQRResult = () => {
+  showQRResult.value = false
+  lastScanned.value = null
+  // Scanner is already running, so it will automatically detect the next QR code
+  // No need to restart - just reset the processing flag
+  processingScan.value = false
+}
+
+const getPaymentStatusColor = (status) => {
+  if (!status) return 'grey'
+  const normalizedStatus = String(status).toLowerCase().trim()
+  return normalizedStatus === 'payment_pending' || normalizedStatus === 'pending' ? 'warning' : 'positive'
+}
+
+const getPaymentStatusIcon = (status) => {
+  if (!status) return 'help'
+  const normalizedStatus = String(status).toLowerCase().trim()
+  return normalizedStatus === 'payment_pending' || normalizedStatus === 'pending' ? 'schedule' : 'check_circle'
+}
+
+const getPaymentStatusLabel = (status) => {
+  if (!status) return 'Unknown'
+  const normalizedStatus = String(status).toLowerCase().trim()
+  
+  if (normalizedStatus === 'payment_pending' || normalizedStatus === 'pending') {
+    return 'Payment Pending'
+  } else if (normalizedStatus === 'present' || normalizedStatus === 'paid') {
+    return 'Payment Paid'
+  } else {
+    console.warn('Unknown payment status:', status)
+    return 'Unknown'
   }
 }
 

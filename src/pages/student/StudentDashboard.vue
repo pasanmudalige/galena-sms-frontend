@@ -181,6 +181,146 @@
         </div>
       </div>
 
+      <!-- Payments Section -->
+      <div class="row q-col-gutter-md q-mb-md">
+        <div class="col-12">
+          <q-card flat bordered>
+            <q-card-section class="q-pa-md">
+              <div class="row items-center q-mb-md">
+                <div class="col">
+                  <div class="text-h6 text-weight-bold text-grey-8">
+                    <q-icon name="payments" color="orange" size="24px" class="q-mr-xs" />
+                    Payment Status
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <q-btn
+                    flat
+                    dense
+                    color="primary"
+                    label="View All Payments"
+                    size="sm"
+                    @click="$router.push('/student/payments')"
+                  />
+                </div>
+              </div>
+
+              <div v-if="paymentsLoading" class="text-center q-pa-md">
+                <q-spinner color="primary" size="3em" />
+              </div>
+
+              <div
+                v-else-if="pendingPaymentsList.length > 0 || paidPaymentsList.length > 0"
+                class="q-gutter-md"
+              >
+                <!-- Pending Payments -->
+                <div v-if="pendingPaymentsList.length > 0">
+                  <div class="text-subtitle2 text-warning q-mb-sm">
+                    <q-icon name="warning" size="18px" class="q-mr-xs" />
+                    Pending Payments ({{ pendingPaymentsList.length }})
+                  </div>
+                  <q-list separator bordered>
+                    <q-item
+                      v-for="(item, index) in pendingPaymentsList.slice(0, 3)"
+                      :key="item.id || item.enrollment_id || index"
+                      class="q-px-md"
+                    >
+                      <q-item-section>
+                        <q-item-label class="text-weight-medium">
+                          {{
+                            item.class?.class_name || item.enrollment?.class?.class_name || 'N/A'
+                          }}
+                        </q-item-label>
+                        <q-item-label caption class="text-grey-6">
+                          {{ formatMonthYear(item.month_year) }}
+                          <span v-if="item.due_date"> · Due: {{ formatDate(item.due_date) }}</span>
+                        </q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        <div class="text-right">
+                          <div class="text-weight-bold text-warning">
+                            Rs.
+                            {{ formatCurrency(item.expected_amount || item.class?.class_fee || 0) }}
+                          </div>
+                          <q-chip color="warning" text-color="white" size="sm" icon="schedule">
+                            Pending
+                          </q-chip>
+                        </div>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                  <div v-if="pendingPaymentsList.length > 3" class="text-center q-mt-sm">
+                    <q-btn
+                      flat
+                      dense
+                      color="primary"
+                      :label="`+ ${pendingPaymentsList.length - 3} more pending`"
+                      size="sm"
+                      @click="$router.push('/student/payments')"
+                    />
+                  </div>
+                </div>
+
+                <!-- Paid Payments -->
+                <div v-if="paidPaymentsList.length > 0" class="q-mt-md">
+                  <div class="text-subtitle2 text-positive q-mb-sm">
+                    <q-icon name="check_circle" size="18px" class="q-mr-xs" />
+                    Paid Payments ({{ paidPaymentsList.length }})
+                  </div>
+                  <q-list separator bordered>
+                    <q-item
+                      v-for="payment in paidPaymentsList.slice(0, 3)"
+                      :key="payment.id"
+                      class="q-px-md"
+                    >
+                      <q-item-section>
+                        <q-item-label class="text-weight-medium">
+                          {{ payment.enrollment?.class?.class_name || 'N/A' }}
+                        </q-item-label>
+                        <q-item-label caption class="text-grey-6">
+                          {{ formatMonthYear(payment.month_year) }}
+                          <span v-if="payment.payment_datetime">
+                            · Paid: {{ formatDate(payment.payment_datetime) }}
+                          </span>
+                        </q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        <div class="text-right">
+                          <div class="text-weight-bold text-positive">
+                            Rs. {{ formatCurrency(payment.paid_amount || payment.expected_amount) }}
+                          </div>
+                          <q-chip color="positive" text-color="white" size="sm" icon="check_circle">
+                            Paid
+                          </q-chip>
+                        </div>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                  <div v-if="paidPaymentsList.length > 3" class="text-center q-mt-sm">
+                    <q-btn
+                      flat
+                      dense
+                      color="primary"
+                      :label="`+ ${paidPaymentsList.length - 3} more paid`"
+                      size="sm"
+                      @click="$router.push('/student/payments')"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="text-center text-grey-6 q-py-md">
+                <q-icon name="info" size="32px" color="grey-5" class="q-mb-sm" />
+                <div class="text-body2">No payment records found</div>
+                <div class="text-caption text-grey-6 q-mt-xs">
+                  Payment records will appear here once created by the administrator
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+      </div>
+
       <!-- Recent Activity -->
       <div class="row q-col-gutter-md q-mb-md">
         <div class="col-12 col-md-6">
@@ -345,19 +485,72 @@
         </q-card-section>
       </q-card>
     </div>
+
+    <!-- Pending Payments Notification Dialog -->
+    <q-dialog v-model="showPendingPaymentsDialog" persistent>
+      <q-card style="min-width: 450px">
+        <q-card-section class="row items-center q-pb-none">
+          <q-avatar icon="warning" color="warning" text-color="white" size="48px" />
+          <div class="q-ml-md">
+            <div class="text-h6 text-weight-bold">Pending Payments</div>
+            <div class="text-caption text-grey-7">
+              You have {{ pendingPaymentsList.length }} pending payment(s)
+            </div>
+          </div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-separator />
+        <q-card-section>
+          <div class="q-gutter-sm">
+            <div
+              v-for="(item, index) in pendingPaymentsList"
+              :key="item.id || item.enrollment_id || index"
+              class="q-pa-sm bg-warning-1 rounded-borders"
+            >
+              <div class="row items-center">
+                <div class="col">
+                  <div class="text-weight-medium">
+                    {{ item.class?.class_name || item.enrollment?.class?.class_name || 'N/A' }}
+                  </div>
+                  <div class="text-caption text-grey-7">
+                    {{ formatMonthYear(item.month_year) }}
+                    <span v-if="item.due_date"> · Due: {{ formatDate(item.due_date) }}</span>
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <div class="text-weight-bold text-warning">
+                    Rs. {{ formatCurrency(item.expected_amount || item.class?.class_fee || 0) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="q-mt-md text-body2 text-grey-7">
+            Please make your payment to avoid any inconvenience.
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <!-- <q-btn flat label="View Payments" color="primary" @click="goToPayments" /> -->
+          <q-btn flat label="OK" color="grey-7" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { api } from 'src/boot/axios'
 import { useAuthStore } from 'src/stores/auth-store'
+import { useRouter } from 'vue-router'
 
 defineOptions({
   name: 'StudentDashboard',
 })
 
 const authStore = useAuthStore()
+const $router = useRouter()
 const authUser = ref(null)
 const studentData = ref(null)
 const loading = ref(false)
@@ -371,6 +564,10 @@ const stats = ref({
 })
 const recentAttendance = ref([])
 const classList = ref([])
+const payments = ref([])
+const pendingEnrollments = ref([])
+const paymentsLoading = ref(false)
+const showPendingPaymentsDialog = ref(false)
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
@@ -382,6 +579,48 @@ const formatDate = (dateString) => {
     return dateString
   }
 }
+
+const formatMonthYear = (monthYear) => {
+  if (!monthYear) return 'N/A'
+  try {
+    const [year, month] = monthYear.split('-')
+    const date = new Date(year, parseInt(month) - 1, 1)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+    })
+  } catch (e) {
+    console.log(e)
+    return monthYear
+  }
+}
+
+const formatCurrency = (amount) => {
+  return parseFloat(amount || 0).toFixed(2)
+}
+
+const pendingPaymentsList = computed(() => {
+  // Use pending_enrollments from API response if available
+  if (pendingEnrollments.value && pendingEnrollments.value.length > 0) {
+    return pendingEnrollments.value.map((enrollment) => ({
+      enrollment_id: enrollment.enrollment_id,
+      class: enrollment.class,
+      month_year: enrollment.month_year,
+      payment_status: 'pending',
+    }))
+  }
+  // Fallback: filter payments that are not paid
+  return payments.value.filter((p) => p.payment_status !== 'paid')
+})
+
+const paidPaymentsList = computed(() => {
+  return payments.value.filter((p) => p.payment_status === 'paid')
+})
+
+// const goToPayments = () => {
+//   showPendingPaymentsDialog.value = false
+//   $router.push('/student/payments')
+// }
 
 const loadDashboard = async () => {
   loading.value = true
@@ -419,6 +658,7 @@ const loadStudentData = async () => {
           loadAttendance(student.id),
           loadClasses(student.id),
           loadDocuments(),
+          loadPayments(),
         ])
       }
     }
@@ -511,7 +751,48 @@ const loadDocuments = async () => {
   }
 }
 
+const loadPayments = async () => {
+  paymentsLoading.value = true
+  try {
+    const res = await api.get('/common/student/payments')
+    console.log('Payments API response:', res.data)
+    if (res.status === 200 && res.data) {
+      payments.value = res.data.data || []
+      // Get pending enrollments from API response (enrollments without paid payments for current month)
+      pendingEnrollments.value = res.data.pending_enrollments || []
+      console.log('Loaded payments:', payments.value.length, payments.value)
+      console.log('Pending enrollments:', pendingEnrollments.value.length, pendingEnrollments.value)
+      console.log('First pending enrollment structure:', pendingEnrollments.value[0])
+      console.log('Pending payments list:', pendingPaymentsList.value.length)
+      console.log('Paid payments:', paidPaymentsList.value.length)
+      stats.value.pendingPayments = pendingEnrollments.value.length
+
+      // Check if there are pending enrollments and show popup (only on initial load)
+      if (pendingEnrollments.value.length > 0 && !localStorage.getItem('pendingPaymentsNotified')) {
+        // Show popup after a short delay to allow dashboard to load
+        setTimeout(() => {
+          showPendingPaymentsDialog.value = true
+          // Mark as notified for this session (will show again on next login)
+          localStorage.setItem('pendingPaymentsNotified', 'true')
+        }, 1000)
+      }
+    } else {
+      payments.value = []
+      pendingEnrollments.value = []
+      console.log('No payments data in response')
+    }
+  } catch (error) {
+    console.error('Error loading payments:', error)
+    payments.value = []
+    pendingEnrollments.value = []
+  } finally {
+    paymentsLoading.value = false
+  }
+}
+
 onMounted(() => {
+  // Clear the notification flag on mount (so it shows on each login)
+  localStorage.removeItem('pendingPaymentsNotified')
   loadDashboard()
 })
 </script>
