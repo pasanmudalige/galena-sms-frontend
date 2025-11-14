@@ -4,7 +4,6 @@
       <!-- Page Header -->
       <div class="row items-center q-mb-lg">
         <div class="col">
-          <div class="text-h4 text-weight-bold text-grey-8">Manage Classes</div>
           <div class="text-subtitle2 text-grey-6">View and manage all classes</div>
         </div>
         <div class="col-auto">
@@ -228,7 +227,14 @@
               </div>
               <div class="flex justify-end q-gutter-sm q-mt-lg">
                 <q-btn flat no-caps label="Cancel" color="grey-7" v-close-popup />
-                <q-btn color="primary" no-caps label="Save" type="submit" :loading="saving" unelevated />
+                <q-btn
+                  color="primary"
+                  no-caps
+                  label="Save"
+                  type="submit"
+                  :loading="saving"
+                  unelevated
+                />
               </div>
             </q-form>
           </q-card-section>
@@ -310,7 +316,10 @@
                     </template>
                     <template #selected>
                       <span v-if="editForm.status">
-                        {{ statusOptions.find((opt) => opt.value === editForm.status)?.label || editForm.status }}
+                        {{
+                          statusOptions.find((opt) => opt.value === editForm.status)?.label ||
+                          editForm.status
+                        }}
                       </span>
                     </template>
                   </q-select>
@@ -328,7 +337,14 @@
               </div>
               <div class="flex justify-end q-gutter-sm q-mt-lg">
                 <q-btn flat no-caps label="Cancel" v-close-popup />
-                <q-btn color="primary" no-caps label="Update" type="submit" :loading="saving" unelevated />
+                <q-btn
+                  color="primary"
+                  no-caps
+                  label="Update"
+                  type="submit"
+                  :loading="saving"
+                  unelevated
+                />
               </div>
             </q-form>
           </q-card-section>
@@ -519,7 +535,9 @@ onMounted(load)
 
 <style scoped>
 .stat-card {
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   border-left: 4px solid transparent;
 }
 

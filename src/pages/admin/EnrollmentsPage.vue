@@ -4,7 +4,6 @@
       <!-- Page Header -->
       <div class="row items-center q-mb-lg">
         <div class="col">
-          <div class="text-h4 text-weight-bold text-grey-8">Student Enrollment</div>
           <div class="text-subtitle2 text-grey-6">Manage student class enrollments</div>
         </div>
         <div class="col-auto">
