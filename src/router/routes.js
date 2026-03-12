@@ -11,9 +11,11 @@ const routes = [
     children: [
       { path: 'login', name: 'login', component: () => import('pages/auth/AuthLogin.vue') },
       { path: '', name: 'webpage', component: () => import('pages/auth/WebPage.vue') },
-      { path: 'register', component: () => import('pages/auth/AuthRegister.vue') },
-      { path: 'student-register', name: 'student-register', component: () => import('pages/auth/StudentRegister.vue') },
-      { path: 'forgot-password', component: () => import('pages/auth/AuthForgotPassword.vue') },
+      {
+        path: 'student-register',
+        name: 'student-register',
+        component: () => import('pages/auth/StudentRegister.vue'),
+      },
     ],
   },
   {
@@ -33,10 +35,6 @@ const routes = [
       { path: 'attendance', component: () => import('pages/admin/AttendancePage.vue') },
       { path: 'payments', component: () => import('pages/admin/PaymentsPage.vue') },
       { path: 'documents', component: () => import('pages/admin/DocumentsPage.vue') },
-      { path: 'bible-verse/:language', component: () => import('pages/admin/BibleVersePage.vue') },
-      { path: 'news', component: () => import('pages/admin/NewsPage.vue') },
-      { path: 'admins', component: () => import('pages/admin/AdminsPage.vue') }, // Only for Super Admins
-      // { path: 'admins', component: () => import('pages/admin/AdminsPage.vue'), meta: { middleware: 'superadmin' } } // Only for Super Admins
     ],
   },
   {
