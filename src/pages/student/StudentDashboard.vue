@@ -648,15 +648,23 @@ const loadUserData = async () => {
 const loadStudentData = async () => {
   try {
     // Get student data by email
-    const res = await api.get('/admin/students')
+    const res = await api.get('/common/student/profile')
     if (res.status === 200 && res.data?.data) {
-      const student = res.data.data.find((s) => s.email === authUser.value?.email)
+      const student = res.data.data
       if (student) {
         studentData.value = student
-        await Promise.all([
-          loadStats(student.id),
-          loadAttendance(student.id),
-          loadClasses(student.id),
+        const [enrollmentsResult, attendanceResult] = await Promise.allSettled([
+          api.get('/common/student/enrollments'),
+          api.get('/common/student/attendance'),
+        ])
+        const enrollments =
+          enrollmentsResult.status === 'fulfilled' ? enrollmentsResult.value.data?.data || [] : []
+        const attendance =
+          attendanceResult.status === 'fulfilled' ? attendanceResult.value.data?.data || [] : []
+        await Promise.allSettled([
+          loadStats(student.id, enrollments, attendance),
+          loadAttendance(student.id, attendance),
+          loadClasses(student.id, enrollments),
           loadDocuments(),
           loadPayments(),
         ])
@@ -667,74 +675,51 @@ const loadStudentData = async () => {
   }
 }
 
-const loadStats = async (studentId) => {
+const loadStats = async (studentId, enrollments, attendance) => {
   try {
-    // Load enrollment count
-    const enrollmentsRes = await api.get('/admin/enrollments')
-    if (enrollmentsRes.status === 200 && enrollmentsRes.data?.data) {
-      const studentEnrollments = enrollmentsRes.data.data.filter((e) => e.student?.id === studentId)
-      stats.value.totalClasses = studentEnrollments.length
-
-      // Load attendance data
-      const attendanceRes = await api.get('/admin/attendance')
-      if (attendanceRes.status === 200 && attendanceRes.data?.data) {
-        const studentAttendance = attendanceRes.data.data.filter(
-          (a) => a.enrollment?.student?.id === studentId,
-        )
-        const presentCount = studentAttendance.filter(
-          (a) => a.attendance_status === 'present',
-        ).length
-        const totalCount = studentAttendance.length
-        stats.value.totalAttendance = totalCount
-        stats.value.presentCount = presentCount
-        if (totalCount > 0) {
-          stats.value.attendanceRate = Math.round((presentCount / totalCount) * 100)
-        }
-      }
+    const studentEnrollments = enrollments.filter((e) => e.student?.id === studentId)
+    stats.value.totalClasses = studentEnrollments.length
+    const studentAttendance = attendance.filter((a) => a.enrollment?.student?.id === studentId)
+    const presentCount = studentAttendance.filter((a) => a.attendance_status === 'present').length
+    const totalCount = studentAttendance.length
+    stats.value.totalAttendance = totalCount
+    stats.value.presentCount = presentCount
+    if (totalCount > 0) {
+      stats.value.attendanceRate = Math.round((presentCount / totalCount) * 100)
     }
   } catch (error) {
     console.error('Error loading stats:', error)
   }
 }
 
-const loadAttendance = async (studentId) => {
+const loadAttendance = async (studentId, attendance) => {
   try {
-    const attendanceRes = await api.get('/admin/attendance')
-    if (attendanceRes.status === 200 && attendanceRes.data?.data) {
-      const studentAttendance = attendanceRes.data.data
-        .filter((a) => a.enrollment?.student?.id === studentId)
-        .map((a) => ({
-          id: a.id,
-          date: a.date,
-          attendance_status: a.attendance_status,
-          class_name: a.enrollment?.class?.class_name || 'N/A',
-          marked_at: a.marked_at,
-        }))
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .slice(0, 7)
-
-      recentAttendance.value = studentAttendance
-    }
+    recentAttendance.value = attendance
+      .filter((a) => a.enrollment?.student?.id === studentId)
+      .map((a) => ({
+        id: a.id,
+        date: a.date,
+        attendance_status: a.attendance_status,
+        class_name: a.enrollment?.class?.class_name || 'N/A',
+        marked_at: a.marked_at,
+      }))
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 7)
   } catch (error) {
     console.error('Error loading attendance:', error)
   }
 }
 
-const loadClasses = async (studentId) => {
+const loadClasses = async (studentId, enrollments) => {
   try {
-    const enrollmentsRes = await api.get('/admin/enrollments')
-    if (enrollmentsRes.status === 200 && enrollmentsRes.data?.data) {
-      const studentEnrollments = enrollmentsRes.data.data
-        .filter((e) => e.student?.id === studentId)
-        .map((e) => ({
-          id: e.id,
-          class_name: e.class?.class_name || 'N/A',
-          subject: e.class?.subject || 'N/A',
-          enrollment_id: e.id,
-        }))
-
-      classList.value = studentEnrollments
-    }
+    classList.value = enrollments
+      .filter((e) => e.student?.id === studentId)
+      .map((e) => ({
+        id: e.id,
+        class_name: e.class?.class_name || 'N/A',
+        subject: e.class?.subject || 'N/A',
+        enrollment_id: e.id,
+      }))
   } catch (error) {
     console.error('Error loading classes:', error)
   }

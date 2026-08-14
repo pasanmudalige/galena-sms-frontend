@@ -372,13 +372,9 @@ const loadStudentData = async () => {
     const res = await authStore.getAuthUserDataUsingAccessToken()
     if (res.status === 200 && res.data?.data) {
       authUser.value = res.data.data
-      // Get student data
-      const studentsRes = await api.get('/admin/students')
-      if (studentsRes.status === 200 && studentsRes.data?.data) {
-        const student = studentsRes.data.data.find((s) => s.email === authUser.value?.email)
-        if (student) {
-          studentData.value = student
-        }
+      const profileRes = await api.get('/common/student/profile')
+      if (profileRes.status === 200 && profileRes.data?.data) {
+        studentData.value = profileRes.data.data
       }
     }
   } catch (error) {
@@ -815,7 +811,7 @@ const viewDocument = async (doc) => {
         console.error('Error rendering PDF:', error)
         // Fallback to iframe if PDF.js fails
         documentUrl.value = blobUrl
-        pdfLoading.value = true // Show loading state on error
+        pdfLoading.value = false
       }
     }
 
@@ -824,6 +820,7 @@ const viewDocument = async (doc) => {
   } catch (error) {
     showViewer.value = false
     viewerLoading.value = false
+    pdfLoading.value = false
     if (error.response?.status === 403) {
       showErrorNotification(error.response?.data?.message || 'Access denied')
     } else if (error.response?.status === 410) {

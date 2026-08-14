@@ -2,7 +2,11 @@ import Cookies from 'js-cookie'
 
 // expires in 1 day
 export function setAccessToken(accessToken) {
-  return Cookies.set('mobibleToken', accessToken, { expires: 1 })
+  return Cookies.set('mobibleToken', accessToken, {
+    expires: 1,
+    sameSite: 'Lax',
+    secure: window.location.protocol === 'https:',
+  })
 }
 
 export function getAccessToken() {

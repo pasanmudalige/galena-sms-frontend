@@ -273,11 +273,11 @@ const loadUserData = async () => {
 const loadClasses = async () => {
   loading.value = true
   try {
-    const studentsRes = await api.get('/admin/students')
-    if (studentsRes.status === 200 && studentsRes.data?.data) {
-      const student = studentsRes.data.data.find((s) => s.email === authUser.value?.email)
+    const profileRes = await api.get('/common/student/profile')
+    if (profileRes.status === 200 && profileRes.data?.data) {
+      const student = profileRes.data.data
       if (student) {
-        const enrollmentsRes = await api.get('/admin/enrollments')
+        const enrollmentsRes = await api.get('/common/student/enrollments')
         if (enrollmentsRes.status === 200 && enrollmentsRes.data?.data) {
           const studentEnrollments = enrollmentsRes.data.data.filter(
             (e) => e.student?.id === student.id,
@@ -328,7 +328,7 @@ const showQRCode = async (enrollmentId) => {
   qrCodeString.value = ''
   enrollmentDetails.value = null
   try {
-    const res = await api.get(`/admin/enrollments/${enrollmentId}`)
+    const res = await api.get(`/common/student/enrollments/${enrollmentId}`)
     if (res.status === 200 && res.data?.data) {
       qrCodeUrl.value = res.data.data.qr_code_image
       qrCodeString.value = res.data.data.enrollment?.enrollment_qr_code || ''

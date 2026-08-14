@@ -9,7 +9,11 @@
         </div>
       </div>
 
-      <div v-if="studentData" class="row q-col-gutter-md">
+      <div v-if="loading" class="flex flex-center" style="min-height: 240px">
+        <q-spinner color="primary" size="3em" />
+      </div>
+
+      <div v-else-if="studentData" class="row q-col-gutter-md">
         <!-- Profile Picture Card -->
         <div class="col-12">
           <q-card flat bordered class="profile-header-card">
@@ -208,9 +212,14 @@
         </div>
       </div>
 
-      <!-- Loading State -->
-      <div v-else class="flex flex-center" style="min-height: 400px">
-        <q-spinner color="primary" size="3em" />
+      <div v-else class="flex flex-center" style="min-height: 240px">
+        <q-banner rounded class="bg-orange-1 text-orange-10" style="max-width: 560px">
+          <template #avatar><q-icon name="warning" color="orange" /></template>
+          {{ loadError || 'No student profile is linked to this account.' }}
+          <template #action>
+            <q-btn flat color="primary" label="Retry" @click="loadUserData" />
+          </template>
+        </q-banner>
       </div>
     </div>
   </q-page>
@@ -229,6 +238,8 @@ const authStore = useAuthStore()
 const authUser = ref(null)
 const studentData = ref(null)
 const profilePictureUrl = ref(null)
+const loading = ref(false)
+const loadError = ref('')
 
 const avatarColor = computed(() => {
   if (!studentData.value?.student_name) return 'primary'
@@ -247,30 +258,38 @@ const getInitials = (name) => {
 }
 
 const loadUserData = async () => {
+  loading.value = true
+  loadError.value = ''
   try {
     const res = await authStore.getAuthUserDataUsingAccessToken()
     if (res.status === 200 && res.data?.data) {
       authUser.value = res.data.data
       await loadStudentData()
+    } else {
+      loadError.value = 'Unable to load your account information.'
     }
   } catch (error) {
     console.error('Error loading user data:', error)
+    loadError.value = 'Your profile could not be loaded. Please check your connection and try again.'
+  } finally {
+    loading.value = false
   }
 }
 
 const loadStudentData = async () => {
   try {
-    const res = await api.get('/admin/students')
+    const res = await api.get('/common/student/profile')
     if (res.status === 200 && res.data?.data) {
-      const student = res.data.data.find((s) => s.email === authUser.value?.email)
+      const student = res.data.data
       if (student) {
         studentData.value = student
         // If there's a profile picture field in the future, load it here
         // profilePictureUrl.value = student.profile_picture_url
-      }
+      } else loadError.value = 'No student profile is linked to this account.'
     }
   } catch (error) {
     console.error('Error loading student data:', error)
+    loadError.value = 'Your student details could not be loaded.'
   }
 }
 

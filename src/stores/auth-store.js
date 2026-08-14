@@ -40,17 +40,10 @@ export const useAuthStore = defineStore('auth', {
       }
     },
     async logoutApi() {
-      try {
-        const data = { isWeb: true }
-        await api.post('/api/logout', data)
-      } catch (error) {
-        console.error(error)
-      } finally {
-        removeAccessToken()
-        localStorage.clear()
-        sessionStorage.clear()
-        window.location.replace('/login')
-      }
+      removeAccessToken()
+      localStorage.clear()
+      sessionStorage.clear()
+      window.location.replace('/#/login')
     },
     async sendOtpApi(data) {
       try {

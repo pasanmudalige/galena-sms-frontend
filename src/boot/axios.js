@@ -5,14 +5,7 @@ import { getAccessToken, removeAccessToken } from 'src/utils/cookie-storage'
 // Common headers setup
 const commonHeaders = () => {
   const accessToken = getAccessToken()
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Content-Security-Policy': "default-src 'self'",
-    'X-Frame-Options': 'DENY',
-    'Strict-Transport-Security': 'max-age=31536000',
-    'Access-Control-Allow-Credentials': true,
-    Authorization: `Bearer ${accessToken}`,
-  }
+  return accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
 }
 
 // Common response interceptor
@@ -23,26 +16,30 @@ const responseInterceptor = (error) => {
       case 401: // Not logged in
       case 419: // Session expired
         logout()
-        break
+        return Promise.reject(error)
       case 503: // Down for maintenance
         location.replace('/')
-        // router.push('/maintenance')
-        break
-      case 500:
-        return Promise.reject(error)
-      default:
         return Promise.reject(error)
     }
   } else {
     console.error('ERROR : ' + error.message)
   }
+
+  return Promise.reject(error)
 }
+
+const configuredBaseUrl = process.env.BACKEND_URL?.trim().replace(/\/$/, '')
+const defaultBaseUrl =
+  typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    ? 'http://localhost:8080/v1/api'
+    : 'https://api.galena.lk/v1/api'
 
 // Create an Axios instance with default settings
 const createApiInstance = (contentType = 'application/json') => {
   const apiInstance = axios.create({
-    baseURL: process.env.BACKEND_URL,
+    baseURL: configuredBaseUrl || defaultBaseUrl,
     withCredentials: true,
+    timeout: 30000,
   })
 
   apiInstance.interceptors.request.use((config) => {
@@ -66,7 +63,7 @@ const logout = () => {
   removeAccessToken()
   localStorage.clear()
   sessionStorage.clear()
-  window.location.replace('/login')
+  window.location.replace('/#/login')
 }
 
 // Create instances for JSON and Multipart/Form-Data requests
