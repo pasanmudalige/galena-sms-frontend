@@ -1,5 +1,12 @@
 <template>
-  <q-item clickable v-ripple @click="onClick">
+  <q-item
+    clickable
+    v-ripple
+    :to="route"
+    exact
+    active-class="dashboard-link-active"
+    @click="onClick"
+  >
     <q-item-section avatar>
       <q-icon :name="icon || 'chevron_right'" />
     </q-item-section>

@@ -1,496 +1,113 @@
 <template>
-  <q-page class="q-pa-md">
-    <div class="q-pa-md">
-      <!-- Page Header -->
-      <div class="row items-center q-mb-lg">
-        <div class="col">
-          <div class="text-subtitle2 text-grey-6">Welcome back! Here's what's happening today.</div>
+  <q-page class="admin-dashboard-page">
+    <div class="admin-dashboard-shell">
+      <section class="admin-hero">
+        <div class="hero-copy">
+          <div class="hero-kicker"><q-icon name="auto_awesome" /> Galena administration</div>
+          <h1>Everything you need to manage Galena.</h1>
+          <p>Monitor your institute and move quickly to the areas that need your attention.</p>
+          <div class="hero-actions">
+            <q-btn unelevated no-caps icon="person_add" label="Add student" to="/admin/students" class="hero-primary" />
+            <q-btn flat no-caps icon="refresh" label="Refresh overview" :loading="loading" class="hero-secondary" @click="loadDashboard" />
+          </div>
         </div>
-        <div class="col-auto">
-          <q-btn
-            color="primary"
-            icon="refresh"
-            label="Refresh"
-            flat
-            @click="loadDashboard"
-            :loading="loading"
-          />
+        <div class="hero-visual" aria-hidden="true">
+          <div class="visual-ring ring-one"></div><div class="visual-ring ring-two"></div>
+          <div class="visual-center"><q-icon name="space_dashboard" /></div>
+          <span class="visual-chip chip-one"><q-icon name="school" /> Students</span>
+          <span class="visual-chip chip-two"><q-icon name="class" /> Classes</span>
+          <span class="visual-chip chip-three"><q-icon name="insights" /> Overview</span>
         </div>
-      </div>
+      </section>
 
-      <!-- Top Stats Cards -->
-      <div class="row q-col-gutter-md q-mb-md">
-        <div class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered class="stat-card stat-card-blue">
-            <q-card-section class="q-pa-md">
-              <div class="row items-center">
-                <div class="col">
-                  <div class="text-overline text-grey-7">Students Present</div>
-                  <div class="text-h4 text-weight-bold text-primary q-mt-xs">245</div>
-                  <div class="text-caption text-positive q-mt-xs">
-                    <q-icon name="trending_up" size="14px" />
-                    +12% from yesterday
-                  </div>
-                </div>
-                <div class="col-auto">
-                  <q-avatar size="56px" color="blue-1" text-color="primary">
-                    <q-icon name="people" size="32px" />
-                  </q-avatar>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
+      <section class="overview-section">
+        <div class="section-heading"><div><span>Live overview</span><h2>Institute at a glance</h2></div><small>Updated from your current records</small></div>
+        <div class="metric-grid">
+          <article v-for="metric in metrics" :key="metric.label" class="metric-card">
+            <span class="metric-icon"><q-icon :name="metric.icon" /></span>
+            <div class="metric-copy"><small>{{ metric.label }}</small><strong>{{ metric.value }}</strong><span>{{ metric.note }}</span></div>
+            <q-icon name="north_east" class="metric-arrow" />
+          </article>
         </div>
+      </section>
 
-        <div class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered class="stat-card stat-card-red">
-            <q-card-section class="q-pa-md">
-              <div class="row items-center">
-                <div class="col">
-                  <div class="text-overline text-grey-7">Students Absent</div>
-                  <div class="text-h4 text-weight-bold text-negative q-mt-xs">15</div>
-                  <div class="text-caption text-grey-6 q-mt-xs">
-                    <q-icon name="info" size="14px" />
-                    5.8% absence rate
-                  </div>
-                </div>
-                <div class="col-auto">
-                  <q-avatar size="56px" color="red-1" text-color="negative">
-                    <q-icon name="person_off" size="32px" />
-                  </q-avatar>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
+      <div class="dashboard-grid">
+        <section class="workspace-card management-card">
+          <div class="card-heading"><div><span>Management</span><h2>Quick access</h2></div><q-icon name="grid_view" /></div>
+          <div class="management-grid">
+            <router-link v-for="action in managementActions" :key="action.label" :to="action.route" class="management-action">
+              <span><q-icon :name="action.icon" /></span><div><strong>{{ action.label }}</strong><small>{{ action.description }}</small></div><q-icon name="arrow_forward" class="action-arrow" />
+            </router-link>
+          </div>
+        </section>
 
-        <div class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered class="stat-card stat-card-green">
-            <q-card-section class="q-pa-md">
-              <div class="row items-center">
-                <div class="col">
-                  <div class="text-overline text-grey-7">Today's Collection</div>
-                  <div class="text-h4 text-weight-bold text-positive q-mt-xs">Rs 45,500</div>
-                  <div class="text-caption text-grey-6 q-mt-xs">
-                    <q-icon name="payments" size="14px" />
-                    18 payments received
-                  </div>
-                </div>
-                <div class="col-auto">
-                  <q-avatar size="56px" color="green-1" text-color="positive">
-                    <q-icon name="account_balance_wallet" size="32px" />
-                  </q-avatar>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <div class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered class="stat-card stat-card-orange">
-            <q-card-section class="q-pa-md">
-              <div class="row items-center">
-                <div class="col">
-                  <div class="text-overline text-grey-7">Pending Payments</div>
-                  <div class="text-h4 text-weight-bold text-warning q-mt-xs">23</div>
-                  <div class="text-caption text-warning q-mt-xs">
-                    <q-icon name="warning" size="14px" />
-                    Require attention
-                  </div>
-                </div>
-                <div class="col-auto">
-                  <q-avatar size="56px" color="orange-1" text-color="warning">
-                    <q-icon name="schedule" size="32px" />
-                  </q-avatar>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
-
-      <!-- Overview Cards -->
-      <div class="row q-col-gutter-md q-mb-md">
-        <div class="col-12 col-md-6">
-          <q-card flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="row items-center">
-                <div class="col">
-                  <div class="text-overline text-grey-7">Total Active Students</div>
-                  <div class="text-h3 text-weight-bold text-grey-8 q-mt-xs">
-                    {{ students.total }}
-                  </div>
-                  <div class="q-mt-sm">
-                    <q-chip size="sm" color="positive" text-color="white" icon="check_circle">
-                      Active: {{ students.active }}
-                    </q-chip>
-                    <q-chip size="sm" color="grey-5" text-color="white" icon="cancel">
-                      Inactive: {{ students.inactive }}
-                    </q-chip>
-                  </div>
-                </div>
-                <div class="col-auto">
-                  <q-avatar size="72px" color="purple-1" text-color="purple">
-                    <q-icon name="school" size="40px" />
-                  </q-avatar>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <div class="col-12 col-md-6">
-          <q-card flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="row items-center">
-                <div class="col">
-                  <div class="text-overline text-grey-7">Total Active Classes</div>
-                  <div class="text-h3 text-weight-bold text-grey-8 q-mt-xs">
-                    {{ classes.total }}
-                  </div>
-                  <div class="q-mt-sm">
-                    <q-chip size="sm" color="positive" text-color="white" icon="check_circle">
-                      Active: {{ classes.active }}
-                    </q-chip>
-                    <q-chip size="sm" color="grey-5" text-color="white" icon="cancel">
-                      Inactive: {{ classes.inactive }}
-                    </q-chip>
-                  </div>
-                </div>
-                <div class="col-auto">
-                  <q-avatar size="72px" color="indigo-1" text-color="indigo">
-                    <q-icon name="class" size="40px" />
-                  </q-avatar>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
-
-      <!-- Activity and Alerts -->
-      <div class="row q-col-gutter-md q-mb-md">
-        <!-- Recent Activity -->
-        <div class="col-12 col-md-6">
-          <q-card flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="row items-center q-mb-md">
-                <div class="col">
-                  <div class="text-h6 text-weight-bold text-grey-8">
-                    <q-icon name="history" color="primary" size="24px" class="q-mr-xs" />
-                    Recent Activity
-                  </div>
-                </div>
-                <div class="col-auto">
-                  <q-btn flat dense color="primary" label="View All" size="sm" />
-                </div>
-              </div>
-
-              <q-list separator>
-                <q-item class="q-px-none">
-                  <q-item-section avatar>
-                    <q-avatar color="primary" text-color="white" size="40px">
-                      <q-icon name="login" />
-                    </q-avatar>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-weight-medium">John Doe checked in</q-item-label>
-                    <q-item-label caption class="text-grey-6">
-                      <q-icon name="class" size="14px" />
-                      Class A · 9:15 AM
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-
-                <q-item class="q-px-none">
-                  <q-item-section avatar>
-                    <q-avatar color="positive" text-color="white" size="40px">
-                      <q-icon name="payments" />
-                    </q-avatar>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-weight-medium">
-                      Payment received from Jane Smith
-                    </q-item-label>
-                    <q-item-label caption class="text-grey-6">
-                      <q-icon name="account_balance_wallet" size="14px" />
-                      Rs 2,500 · Class B · 10:30 AM
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-
-                <q-item class="q-px-none">
-                  <q-item-section avatar>
-                    <q-avatar color="orange" text-color="white" size="40px">
-                      <q-icon name="person_add" />
-                    </q-avatar>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-weight-medium">
-                      New enrollment: Mike Johnson
-                    </q-item-label>
-                    <q-item-label caption class="text-grey-6">
-                      <q-icon name="class" size="14px" />
-                      Class C · Yesterday
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-
-                <q-item class="q-px-none">
-                  <q-item-section avatar>
-                    <q-avatar color="blue" text-color="white" size="40px">
-                      <q-icon name="login" />
-                    </q-avatar>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-weight-medium">
-                      Sarah Williams checked in
-                    </q-item-label>
-                    <q-item-label caption class="text-grey-6">
-                      <q-icon name="class" size="14px" />
-                      Class A · 8:45 AM
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <!-- Alerts & Notifications -->
-        <div class="col-12 col-md-6">
-          <q-card flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="row items-center q-mb-md">
-                <div class="col">
-                  <div class="text-h6 text-weight-bold text-grey-8">
-                    <q-icon
-                      name="notifications_active"
-                      color="warning"
-                      size="24px"
-                      class="q-mr-xs"
-                    />
-                    Alerts & Notifications
-                  </div>
-                </div>
-                <div class="col-auto">
-                  <q-badge color="negative" floating>4</q-badge>
-                </div>
-              </div>
-
-              <q-list separator>
-                <q-item clickable class="q-px-none alert-item alert-danger">
-                  <q-item-section avatar>
-                    <q-avatar color="negative" text-color="white" size="40px">
-                      <q-icon name="error" />
-                    </q-avatar>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-weight-bold text-negative">
-                      Payment Overdue
-                    </q-item-label>
-                    <q-item-label caption class="text-grey-7">
-                      5 students beyond grace period
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <q-icon name="chevron_right" color="grey-5" />
-                  </q-item-section>
-                </q-item>
-
-                <q-item clickable class="q-px-none alert-item alert-warning">
-                  <q-item-section avatar>
-                    <q-avatar color="warning" text-color="white" size="40px">
-                      <q-icon name="warning" />
-                    </q-avatar>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-weight-bold text-warning">
-                      Payment Due Soon
-                    </q-item-label>
-                    <q-item-label caption class="text-grey-7">
-                      12 students within 7 days
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <q-icon name="chevron_right" color="grey-5" />
-                  </q-item-section>
-                </q-item>
-
-                <q-item clickable class="q-px-none alert-item">
-                  <q-item-section avatar>
-                    <q-avatar color="grey-6" text-color="white" size="40px">
-                      <q-icon name="block" />
-                    </q-avatar>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-weight-bold text-grey-8">
-                      Blocked Students
-                    </q-item-label>
-                    <q-item-label caption class="text-grey-7">
-                      3 students blocked today
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <q-icon name="chevron_right" color="grey-5" />
-                  </q-item-section>
-                </q-item>
-
-                <q-item clickable class="q-px-none alert-item">
-                  <q-item-section avatar>
-                    <q-avatar color="info" text-color="white" size="40px">
-                      <q-icon name="trending_down" />
-                    </q-avatar>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-weight-bold text-info"> Low Attendance </q-item-label>
-                    <q-item-label caption class="text-grey-7">
-                      8 students with &lt;70% attendance
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <q-icon name="chevron_right" color="grey-5" />
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
-
-      <!-- Charts Section -->
-      <div class="row q-col-gutter-md q-mb-md">
-        <div class="col-12 col-md-6">
-          <q-card flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="text-h6 text-weight-bold text-grey-8 q-mb-md">
-                <q-icon name="trending_up" color="primary" size="24px" class="q-mr-xs" />
-                Attendance Trend
-              </div>
-              <div class="chart-placeholder">
-                <q-icon name="show_chart" size="64px" color="grey-4" />
-                <div class="text-grey-6 q-mt-sm">Last 7 days attendance</div>
-                <q-btn
-                  flat
-                  color="primary"
-                  label="View Detailed Report"
-                  size="sm"
-                  class="q-mt-md"
-                />
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <div class="col-12 col-md-6">
-          <q-card flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="text-h6 text-weight-bold text-grey-8 q-mb-md">
-                <q-icon name="bar_chart" color="positive" size="24px" class="q-mr-xs" />
-                Payment Collection Trend
-              </div>
-              <div class="chart-placeholder">
-                <q-icon name="insert_chart" size="64px" color="grey-4" />
-                <div class="text-grey-6 q-mt-sm">Monthly comparison</div>
-                <q-btn
-                  flat
-                  color="primary"
-                  label="View Detailed Report"
-                  size="sm"
-                  class="q-mt-md"
-                />
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
-
-      <!-- Quick Actions -->
-      <q-card flat bordered>
-        <q-card-section class="q-pa-md">
-          <div class="text-h6 text-weight-bold text-grey-8 q-mb-md">Quick Actions</div>
-          <div class="row q-col-gutter-sm">
-            <div class="col-6 col-sm-4 col-md-2">
-              <q-btn
-                unelevated
-                color="primary"
-                icon="person_add"
-                label="Add Student"
-                class="full-width action-btn"
-                @click="$router.push('/admin/students')"
-              />
+        <section class="workspace-card health-card">
+          <div class="card-heading"><div><span>Record health</span><h2>Current status</h2></div><q-icon name="monitor_heart" /></div>
+          <div class="health-list">
+            <div class="health-row">
+              <div class="health-label"><span><q-icon name="people" /></span><div><strong>Active students</strong><small>{{ students.active }} of {{ students.total }} records</small></div></div>
+              <strong>{{ studentActiveRate }}%</strong>
+              <div class="progress-track"><i :style="{ width: `${studentActiveRate}%` }"></i></div>
             </div>
-            <div class="col-6 col-sm-4 col-md-2">
-              <q-btn
-                unelevated
-                color="positive"
-                icon="qr_code_scanner"
-                label="Attendance"
-                class="full-width action-btn"
-              />
-            </div>
-            <div class="col-6 col-sm-4 col-md-2">
-              <q-btn
-                unelevated
-                color="orange"
-                icon="payments"
-                label="Payment"
-                class="full-width action-btn"
-              />
-            </div>
-            <div class="col-6 col-sm-4 col-md-2">
-              <q-btn
-                unelevated
-                color="purple"
-                icon="assessment"
-                label="Reports"
-                class="full-width action-btn"
-              />
-            </div>
-            <div class="col-6 col-sm-4 col-md-2">
-              <q-btn
-                unelevated
-                color="indigo"
-                icon="class"
-                label="Classes"
-                class="full-width action-btn"
-                @click="$router.push('/admin/classes')"
-              />
-            </div>
-            <div class="col-6 col-sm-4 col-md-2">
-              <q-btn
-                unelevated
-                color="grey-7"
-                icon="settings"
-                label="Settings"
-                class="full-width action-btn"
-              />
+            <div class="health-row">
+              <div class="health-label"><span><q-icon name="school" /></span><div><strong>Active classes</strong><small>{{ classes.active }} of {{ classes.total }} records</small></div></div>
+              <strong>{{ classActiveRate }}%</strong>
+              <div class="progress-track"><i :style="{ width: `${classActiveRate}%` }"></i></div>
             </div>
           </div>
-        </q-card-section>
-      </q-card>
+          <div class="health-note"><q-icon name="verified" /><div><strong>System records connected</strong><span>This overview reflects the latest available dashboard data.</span></div></div>
+        </section>
+      </div>
+
+      <section class="workspace-card activity-card">
+        <div class="card-heading"><div><span>Daily workflow</span><h2>Common administrator tasks</h2></div><q-icon name="bolt" /></div>
+        <div class="workflow-grid">
+          <router-link to="/admin/enrollments"><span>01</span><q-icon name="how_to_reg" /><strong>Manage enrolments</strong><small>Connect students with the right classes.</small></router-link>
+          <router-link to="/admin/attendance"><span>02</span><q-icon name="fact_check" /><strong>Review attendance</strong><small>Record and review class participation.</small></router-link>
+          <router-link to="/admin/payments"><span>03</span><q-icon name="payments" /><strong>Manage payments</strong><small>Keep student payment records organised.</small></router-link>
+          <router-link to="/admin/documents"><span>04</span><q-icon name="folder_open" /><strong>Publish resources</strong><small>Share learning documents with students.</small></router-link>
+        </div>
+      </section>
     </div>
   </q-page>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { api } from 'src/boot/axios'
+
+defineOptions({ name: 'AdminDashboard' })
 
 const students = ref({ total: 0, active: 0, inactive: 0 })
 const classes = ref({ total: 0, active: 0, inactive: 0 })
 const loading = ref(false)
+
+const studentActiveRate = computed(() => students.value.total ? Math.round((students.value.active / students.value.total) * 100) : 0)
+const classActiveRate = computed(() => classes.value.total ? Math.round((classes.value.active / classes.value.total) * 100) : 0)
+const metrics = computed(() => [
+  { label: 'Total students', value: students.value.total, note: `${students.value.active} currently active`, icon: 'groups' },
+  { label: 'Active students', value: students.value.active, note: `${students.value.inactive} inactive records`, icon: 'how_to_reg' },
+  { label: 'Total classes', value: classes.value.total, note: `${classes.value.active} currently active`, icon: 'school' },
+  { label: 'Active classes', value: classes.value.active, note: `${classes.value.inactive} inactive records`, icon: 'auto_stories' },
+])
+
+const managementActions = [
+  { label: 'Students', description: 'Profiles and access', icon: 'groups', route: '/admin/students' },
+  { label: 'Classes', description: 'Programs and schedules', icon: 'school', route: '/admin/classes' },
+  { label: 'Enrolments', description: 'Student class access', icon: 'how_to_reg', route: '/admin/enrollments' },
+  { label: 'Documents', description: 'Learning resources', icon: 'folder_open', route: '/admin/documents' },
+]
 
 const loadDashboard = async () => {
   loading.value = true
   try {
     const res = await api.get('/admin/auth/getDashboardData')
     if (res.status === 200 && res.data?.data) {
-      students.value = res.data.data.students
-      classes.value = res.data.data.classes
+      students.value = res.data.data.students || students.value
+      classes.value = res.data.data.classes || classes.value
     }
-  } catch (e) {
-    console.error('Dashboard load error:', e)
+  } catch (error) {
+    console.error('Dashboard load error:', error)
   } finally {
     loading.value = false
   }
@@ -500,74 +117,10 @@ onMounted(loadDashboard)
 </script>
 
 <style scoped>
-.stat-card {
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
-  border-left: 4px solid transparent;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.stat-card-blue {
-  border-left-color: #1976d2;
-}
-
-.stat-card-red {
-  border-left-color: #c10015;
-}
-
-.stat-card-green {
-  border-left-color: #21ba45;
-}
-
-.stat-card-orange {
-  border-left-color: #f2c037;
-}
-
-.alert-item {
-  border-radius: 8px;
-  transition: background-color 0.2s;
-}
-
-.alert-item:hover {
-  background-color: #f5f5f5;
-}
-
-.alert-danger {
-  background-color: #ffebee;
-}
-
-.alert-warning {
-  background-color: #fff8e1;
-}
-
-.chart-placeholder {
-  height: 280px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  border-radius: 8px;
-  text-align: center;
-}
-
-.action-btn {
-  height: 80px;
-  flex-direction: column;
-  font-size: 12px;
-}
-
-.action-btn :deep(.q-btn__content) {
-  flex-direction: column;
-  gap: 8px;
-}
-
-.action-btn :deep(.q-icon) {
-  font-size: 28px;
-}
+.admin-dashboard-page{min-height:100vh;padding:30px;background:transparent;font-family:"Poppins",sans-serif}.admin-dashboard-shell{width:min(1420px,100%);margin:auto}.admin-hero{min-height:315px;padding:46px 50px;display:grid;grid-template-columns:1.25fr .75fr;align-items:center;overflow:hidden;position:relative;border-radius:28px;color:white;background:radial-gradient(circle at 85% 15%,rgba(67,203,232,.3),transparent 24%),linear-gradient(120deg,#0b285d,#2869d7 65%,#7443eb);box-shadow:0 22px 50px rgba(31,71,149,.21)}.hero-kicker{color:#83e8f8;text-transform:uppercase;letter-spacing:.1em;font-size:.68rem;font-weight:850}.hero-kicker .q-icon{margin-right:5px}.hero-copy h1{max-width:680px;margin:16px 0 13px;font-size:clamp(2.2rem,4vw,3.65rem);line-height:1.04;letter-spacing:-.05em}.hero-copy>p{max-width:630px;margin:0;color:#c9d7eb;line-height:1.65}.hero-actions{display:flex;gap:10px;margin-top:28px}.hero-actions .q-btn{min-height:47px;padding:0 18px;border-radius:12px;font-weight:750}.hero-primary{color:#285bc5;background:white}.hero-secondary{color:white;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08)}.hero-visual{height:230px;position:relative;display:grid;place-items:center}.visual-ring{position:absolute;border:1px solid rgba(255,255,255,.18);border-radius:50%}.ring-one{width:205px;height:205px}.ring-two{width:145px;height:145px}.visual-center{width:88px;height:88px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.3);border-radius:25px;background:rgba(255,255,255,.14);backdrop-filter:blur(10px);font-size:43px;box-shadow:0 18px 35px rgba(5,25,67,.22)}.visual-chip{position:absolute;padding:9px 13px;display:flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.2);border-radius:99px;background:rgba(7,31,76,.52);backdrop-filter:blur(8px);font-size:.68rem;font-weight:700}.chip-one{top:10px;left:5px}.chip-two{right:0;top:75px}.chip-three{bottom:7px;left:15px}
+.overview-section{margin-top:35px}.section-heading{display:flex;align-items:end;justify-content:space-between;margin-bottom:17px}.section-heading span,.card-heading span{color:#526bd7;text-transform:uppercase;letter-spacing:.09em;font-size:.62rem;font-weight:850}.section-heading h2,.card-heading h2{margin:4px 0 0;color:#122957;font-size:1.25rem}.section-heading>small{color:#8a98ae}.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.metric-card{min-height:148px;padding:21px;display:flex;align-items:flex-start;gap:14px;position:relative;border:1px solid #e3eaf5;border-radius:19px;background:white;box-shadow:0 10px 28px rgba(26,53,105,.06);transition:.22s}.metric-card:hover{transform:translateY(-4px);box-shadow:0 16px 35px rgba(26,53,105,.11)}.metric-icon{width:45px;height:45px;display:grid;place-items:center;flex:none;border-radius:13px;color:#2f6fec;background:#edf3ff;font-size:23px}.metric-copy{display:grid}.metric-copy small{color:#8391a8;font-size:.66rem}.metric-copy strong{margin:6px 0;color:#102554;font-size:1.7rem;line-height:1}.metric-copy span{color:#73839c;font-size:.65rem}.metric-arrow{position:absolute;right:17px;top:17px;color:#cad5e7;font-size:17px}
+.dashboard-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:20px;margin-top:20px}.workspace-card{padding:27px;border:1px solid #e3eaf5;border-radius:21px;background:white;box-shadow:0 10px 30px rgba(26,53,105,.06)}.card-heading{display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;border-bottom:1px solid #e9eef6}.card-heading>.q-icon{color:#d4dff0;font-size:33px}.management-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:20px}.management-action{min-height:84px;padding:14px;display:flex;align-items:center;gap:12px;color:inherit;text-decoration:none;border:1px solid #e5ebf5;border-radius:14px;background:#fafcff;transition:.2s}.management-action:hover{border-color:#cddcff;background:#f4f7ff}.management-action>span{width:42px;height:42px;display:grid;place-items:center;flex:none;border-radius:12px;color:#2f6fec;background:#eaf1ff;font-size:21px}.management-action>div{display:grid;gap:3px}.management-action strong{color:#20375f;font-size:.77rem}.management-action small{color:#8492a9;font-size:.61rem}.action-arrow{margin-left:auto;color:#a5b4ca}.health-list{display:grid;gap:22px;margin-top:23px}.health-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px}.health-label{display:flex;align-items:center;gap:11px}.health-label>span{width:37px;height:37px;display:grid;place-items:center;border-radius:11px;color:#2f6fec;background:#edf3ff;font-size:19px}.health-label>div{display:grid}.health-label strong{color:#263c63;font-size:.75rem}.health-label small{margin-top:3px;color:#8a98ad;font-size:.61rem}.health-row>strong{color:#2f6fec;font-size:.8rem}.progress-track{grid-column:1/-1;height:7px;overflow:hidden;border-radius:99px;background:#e9eef7}.progress-track i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#43cbe8,#2f6fec,#7443eb)}.health-note{margin-top:25px;padding:14px;display:flex;align-items:center;gap:10px;border-radius:13px;background:#f2f7ff}.health-note>.q-icon{color:#1ea979;font-size:23px}.health-note>div{display:grid}.health-note strong{color:#304568;font-size:.7rem}.health-note span{margin-top:3px;color:#8392a9;font-size:.58rem}
+.activity-card{margin-top:20px}.workflow-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-top:20px}.workflow-grid>a{min-height:165px;padding:20px;display:grid;align-content:start;position:relative;color:inherit;text-decoration:none;border:1px solid #e5ebf5;border-radius:16px;background:#fafcff;transition:.2s}.workflow-grid>a:hover{transform:translateY(-3px);border-color:#ccdcfb;background:#f5f8ff}.workflow-grid>a>span{position:absolute;right:14px;top:12px;color:#dfe6f1;font-size:1.4rem;font-weight:850}.workflow-grid>a>.q-icon{width:42px;height:42px;display:grid;place-items:center;margin-bottom:16px;border-radius:12px;color:#2f6fec;background:#eaf1ff;font-size:22px}.workflow-grid strong{color:#20375f;font-size:.78rem}.workflow-grid small{margin-top:7px;color:#8190a8;font-size:.63rem;line-height:1.5}
+@media(max-width:1100px){.metric-grid{grid-template-columns:repeat(2,1fr)}.dashboard-grid{grid-template-columns:1fr}.workflow-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.admin-dashboard-page{padding:16px}.admin-hero{padding:32px 23px;grid-template-columns:1fr}.hero-visual{display:none}.hero-copy h1{font-size:2.35rem}.hero-actions{display:grid}.section-heading{align-items:flex-start}.section-heading>small{display:none}.metric-grid,.management-grid,.workflow-grid{grid-template-columns:1fr}.metric-card{min-height:125px}.workspace-card{padding:21px}}
 </style>

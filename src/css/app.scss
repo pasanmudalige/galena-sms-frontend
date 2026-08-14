@@ -3,12 +3,50 @@
 @import "tailwind.css";
 
 body {
-  color: $dark;
+  color: #102554;
   font-family: "Poppins", sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
   letter-spacing: 0.25px;
+}
+
+:root {
+  --galena-navy: #102554;
+  --galena-navy-deep: #091d43;
+  --galena-blue: #2f6fec;
+  --galena-violet: #7443eb;
+  --galena-cyan: #43cbe8;
+  --galena-page: #f3f7fc;
+  --galena-border: #e4ebf5;
+  --galena-muted: #71819c;
+  --galena-shadow: 0 10px 30px rgba(26, 53, 105, 0.07);
+}
+
+// One shared visual language for every authenticated student and admin page.
+.portal-container,
+.admin-container {
+  color: var(--galena-navy);
+  background: var(--galena-page);
+
+  .q-page { background: transparent; }
+  .q-card { border-color: var(--galena-border); border-radius: 18px; box-shadow: var(--galena-shadow); }
+  .q-table__container { overflow: hidden; border: 1px solid var(--galena-border); border-radius: 18px; box-shadow: var(--galena-shadow); }
+  .q-table thead tr, .q-table thead th { color: #536887; background: #f5f8fd; font-weight: 700; }
+  .q-table tbody td { border-color: #edf1f7; }
+  .q-field--outlined .q-field__control { border-radius: 12px; background: #fbfcff; }
+  .q-btn { border-radius: 11px; }
+  .q-btn.bg-primary { background: linear-gradient(110deg, var(--galena-blue), var(--galena-violet)) !important; }
+  .q-chip { border-radius: 8px; }
+  .text-primary { color: var(--galena-blue) !important; }
+}
+
+.dashboard-page {
+  .stat-card { border-left-color: var(--galena-blue) !important; }
+  .stat-card .q-avatar { color: var(--galena-blue) !important; background: #edf3ff !important; }
+  .stat-card .text-h3, .stat-card .text-h4 { color: var(--galena-navy) !important; }
+  .action-btn { color: #fff !important; background: linear-gradient(135deg, var(--galena-blue), var(--galena-violet)) !important; }
+  .chart-placeholder { background: linear-gradient(145deg, #f8faff, #edf3ff) !important; }
 }
 a{
   color: $primary;

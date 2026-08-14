@@ -1,17 +1,18 @@
 <template>
-  <q-page class="q-pa-md">
-    <div class="q-pa-md">
+  <q-page class="dashboard-page student-dashboard-page">
+    <div class="dashboard-shell">
       <!-- Page Header -->
-      <div class="row items-center q-mb-lg">
+      <div class="dashboard-hero row items-center q-mb-lg">
         <div class="col">
-          <div class="text-h4 text-weight-bold text-grey-8">Student Dashboard</div>
-          <div class="text-subtitle2 text-grey-6">
-            Welcome back, {{ authUser?.full_name || 'Student' }}! Here's your overview.
+          <div class="hero-kicker"><q-icon name="auto_awesome" /> My learning space</div>
+          <div class="text-h4 text-weight-bold">Welcome back, {{ studentFirstName }}</div>
+          <div class="hero-student-id">
+            <q-icon name="badge" /> Student ID: {{ studentData?.student_id || 'Not available' }}
           </div>
         </div>
         <div class="col-auto">
           <q-btn
-            color="primary"
+            color="white"
             icon="refresh"
             label="Refresh"
             flat
@@ -553,6 +554,10 @@ const authStore = useAuthStore()
 const $router = useRouter()
 const authUser = ref(null)
 const studentData = ref(null)
+const studentFirstName = computed(() => {
+  const fullName = studentData.value?.student_name || authUser.value?.full_name || authUser.value?.fullname
+  return fullName?.trim().split(/\s+/)[0] || 'Student'
+})
 const loading = ref(false)
 const stats = ref({
   attendanceRate: 0,
@@ -783,6 +788,27 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.dashboard-page{min-height:100vh;padding:30px;background:transparent;font-family:Inter,"Segoe UI",sans-serif}.dashboard-shell{width:min(1440px,100%);margin:auto}.dashboard-hero{position:relative;overflow:hidden;min-height:170px;padding:34px 38px;border-radius:25px;color:white;background:radial-gradient(circle at 85% 15%,rgba(54,215,244,.32),transparent 24%),linear-gradient(120deg,#0d2c66,#2869dc 65%,#7343e7);box-shadow:0 20px 45px rgba(32,73,151,.2)}.dashboard-hero:after{content:'school';position:absolute;right:45px;bottom:-38px;color:rgba(255,255,255,.1);font-family:'Material Icons';font-size:170px}.dashboard-hero .col,.dashboard-hero .col-auto{position:relative;z-index:1}.hero-kicker{margin-bottom:10px;color:#85eaff;text-transform:uppercase;letter-spacing:.09em;font-size:.68rem;font-weight:850}.hero-kicker .q-icon{margin-right:5px}.dashboard-hero .text-h4{font-size:clamp(1.7rem,3vw,2.35rem)}.dashboard-hero .text-subtitle2{margin-top:7px;color:#cfdbef;font-weight:400}.dashboard-hero .q-btn{border:1px solid rgba(255,255,255,.25);border-radius:12px;background:rgba(255,255,255,.1)!important}
+.dashboard-page :deep(.q-card){border:1px solid #e5ecf6!important;border-radius:19px;background:rgba(255,255,255,.96);box-shadow:0 10px 30px rgba(28,55,108,.06);transition:.22s}.dashboard-page :deep(.q-card:hover){box-shadow:0 16px 38px rgba(28,55,108,.11)}.dashboard-page :deep(.q-card__section){padding:22px}.dashboard-page :deep(.q-list--bordered){border-color:#e7edf6;border-radius:13px;overflow:hidden}.dashboard-page :deep(.q-item){min-height:58px}.dashboard-page :deep(.q-chip){border-radius:8px}.dashboard-page :deep(.text-h6){color:#152c56!important}.dashboard-page :deep(.text-overline){color:#71829f!important;letter-spacing:.075em;font-weight:800}.dashboard-page :deep(.q-avatar){border-radius:15px}.dashboard-page :deep(.action-btn){border-radius:14px;box-shadow:none}
+.hero-student-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 9px;
+  color: #d7e4f6;
+  background: rgba(255, 255, 255, 0.09);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.hero-student-id .q-icon {
+  color: #83e8f8;
+  font-size: 17px;
+}
+
 .stat-card {
   transition:
     transform 0.2s,
@@ -825,4 +851,5 @@ onMounted(() => {
 .action-btn :deep(.q-icon) {
   font-size: 28px;
 }
+@media(max-width:700px){.dashboard-page{padding:16px}.dashboard-hero{padding:27px 23px;align-items:flex-start}.dashboard-hero .col-auto{width:100%;margin-top:16px}.dashboard-hero:after{right:-10px}.dashboard-page :deep(.q-card__section){padding:18px}}
 </style>
