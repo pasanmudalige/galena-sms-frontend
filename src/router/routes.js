@@ -38,6 +38,22 @@ const routes = [
     ],
   },
   {
+    path: '/teacher/quizzes/:id/play',
+    component: () => import('pages/teacher/QuizPlayer.vue'),
+    meta: { authOnly: true, middleware: 'teacher', title: 'Quiz Programme' },
+  },
+  {
+    path: '/teacher',
+    component: () => import('layouts/TeacherLayout.vue'),
+    meta: { authOnly: true, middleware: 'teacher' },
+    children: [
+      { path: 'dashboard', component: () => import('pages/teacher/TeacherDashboard.vue'), meta: { title: 'Dashboard' } },
+      { path: 'quizzes', component: () => import('pages/teacher/QuizProgrammes.vue'), meta: { title: 'My Quiz Programmes' } },
+      { path: 'quizzes/new', component: () => import('pages/teacher/QuizEditor.vue'), meta: { title: 'Create Quiz Programme' } },
+      { path: 'quizzes/:id/edit', component: () => import('pages/teacher/QuizEditor.vue'), meta: { title: 'Edit Quiz Programme' } },
+    ],
+  },
+  {
     path: '/student',
     name: 'student',
     component: () => import('layouts/StudentLayout.vue'),

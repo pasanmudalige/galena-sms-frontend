@@ -137,7 +137,8 @@ const onSubmit = async () => {
         const user = response.data.user
         if (token) setAccessToken(token)
         showSuccessNotification('Successfully logged in')
-        router.push(user?.role === 'student' ? '/student/dashboard' : '/admin/dashboard')
+        const destinations = { student: '/student/dashboard', teacher: '/teacher/dashboard' }
+        router.push(destinations[user?.role] || '/admin/dashboard')
       } else {
         showErrorNotification(response.data.message)
       }
